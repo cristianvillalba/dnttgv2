@@ -79,6 +79,7 @@ bool LEFT = false;
 bool RIGHT = false;
 bool SPINL = false;
 bool SPINR = false;
+bool SPAWN = false;
 
 
 
@@ -223,11 +224,25 @@ void spinRCameraUp(const Event* eventPtr, void* dataPtr)
 
 void spawnSphere(const Event* eventPtr, void* dataPtr)
 {
-	grid->spawnSphere();
-
-	refresh3dTexture();
+	if (!SPAWN)
+	{
+		SPAWN = true;
+	}
 }
 
+
+AsyncTask::DoneStatus modifyGrid(GenericAsyncTask *task, void *data) 
+{
+	if (SPAWN)
+	{
+		grid->spawnSphere();
+
+		refresh3dTexture();
+		SPAWN = false;
+	}
+
+	return AsyncTask::DS_cont;
+}
 
 PT(Texture) Render3dTexture()
 {
@@ -885,15 +900,16 @@ void MakeShadertoy(int argc, char *argv[])
 	// Add our task.
 	// If we specify custom data instead of NULL, it will be passed as the second argument
 	// to the task function.
-	//AsyncTaskChain *chain = taskMgr->make_task_chain("openvdbgrid");
-	//chain->set_num_threads(4);
-	//chain->set_thread_priority(ThreadPriority::TP_urgent);
+	AsyncTaskChain *chain = taskMgr->make_task_chain("changevdbgrid");
+	chain->set_num_threads(4);
+	chain->set_thread_priority(ThreadPriority::TP_urgent);
 
-	//GenericAsyncTask* rendertask = new GenericAsyncTask("Camera Task", &cameraTask, nullptr);
-	//rendertask->set_task_chain("openvdbgrid");
+	GenericAsyncTask* modifytask = new GenericAsyncTask("Modify Grid", &modifyGrid, nullptr);
+	modifytask->set_task_chain("changevdbgrid");
 
-	//taskMgr->add(rendertask);
+	
 	taskMgr->add(new GenericAsyncTask("Camera Motion", &cameraMotionTask, nullptr));
+	taskMgr->add(modifytask);
 
 	// This is a simpler way to do stuff every frame,
 	// if you're too lazy to create a task.
