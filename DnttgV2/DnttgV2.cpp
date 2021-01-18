@@ -2,6 +2,7 @@
 //
 
 #include <iostream>
+#include <map>
 
 #include "pandaFramework.h"
 #include "pandaSystem.h"
@@ -28,6 +29,7 @@
 #define WIDTH 200
 #define HEIGHT 200
 #define BUNNY 1
+#define BOUNDINGBOX 1
 #define TEXTURESIZE 128
 
 using std::chrono::duration;
@@ -56,6 +58,7 @@ PT(Texture) bunn;
 
 //Main Quad
 NodePath mainQuad;
+NodePath mainQuad01;
 
 //Window main
 WindowFramework *mainWindow;
@@ -64,6 +67,16 @@ WindowFramework *mainWindow;
 float CAM_x = 0.0;
 float CAM_y = 0.0;
 float CAM_z = 1.0;
+
+//Global camera pos;
+int GRID_x = 0;
+int GRID_y = 0;
+int GRID_z = 0;
+
+//grid frustrum
+GridFrustrum gridFrustrum;
+
+
 
 //Velocity vector/Acceleration
 float VELX = 0.0;
@@ -276,10 +289,23 @@ PT(Texture) Render3dTexture()
 				//translate(500.0, 0, 0, &x, &y, &z);
 				float data = grid->getValue(x, y, z);
 
-				if (data > 0)
+				if (data > 0 )
 				{
 					r = 1.0f ;
 					g = 1.0f ;
+				}
+
+				if (BOUNDINGBOX == 1)
+				{
+					if ((i == 0 || i == (texsize - 1)) && (k == 0 || k == (texsize - 1)) || 
+						(j == 0 || j == (texsize - 1)) && (k == 0 || k == (texsize - 1)) ||
+						(i == 0 && j == 0) || (i == 0 && j == (texsize - 1)) ||
+						(i == (texsize - 1) && j == 0) || (i == (texsize - 1) && j == (texsize - 1))
+						)
+					{
+						r = 1.0f;
+						g = 1.0f;
+					}
 				}
 			
 				//int flipy = -j + texsize - 1;
@@ -439,6 +465,23 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 
 	mainQuad.set_shader_input("campos", camera.get_pos());
 	mainQuad.set_shader_input("target", lookAtDirection);
+
+	mainQuad01.set_shader_input("campos", camera.get_pos() - LVector3f(0.5,0.5,0.5));
+	mainQuad01.set_shader_input("target", lookAtDirection);
+
+
+	if (floor(CAM_x + 0.5) != GRID_x ||
+		floor(CAM_y + 0.5) != GRID_y ||
+		floor(CAM_z + 0.5) != GRID_z)
+	{
+		GRID_x = floor(CAM_x + 0.5);
+		GRID_y = floor(CAM_y + 0.5);
+		GRID_z = floor(CAM_z + 0.5);
+
+		//refreshGridFrustrum();
+	}
+
+	//std::cout << "x: " << GRID_x << " y: " << GRID_y << " z: " << GRID_z << "\n";
 	// Tell the task manager to continue this task the next frame.
 	return AsyncTask::DS_cont;
 }
@@ -615,6 +658,373 @@ AsyncTask::DoneStatus spinRasterizerTask(GenericAsyncTask *task, void *data) {
 	//print_results("Serial", startTime, endTime);
 	// Tell the task manager to continue this task the next frame.
 	return AsyncTask::DS_cont;
+}
+
+void initGridFrustrum()
+{
+	KeyTriple key01 = std::make_tuple(GRID_x - 1, GRID_y - 1, GRID_z - 1);
+	KeyTriple key02 = std::make_tuple(GRID_x,	  GRID_y - 1, GRID_z - 1);
+	KeyTriple key03 = std::make_tuple(GRID_x + 1, GRID_y - 1, GRID_z - 1);
+	KeyTriple key04 = std::make_tuple(GRID_x - 1, GRID_y,	  GRID_z - 1);
+	KeyTriple key05 = std::make_tuple(GRID_x,	  GRID_y,	  GRID_z - 1);
+	KeyTriple key06 = std::make_tuple(GRID_x + 1, GRID_y,	  GRID_z - 1);
+	KeyTriple key07 = std::make_tuple(GRID_x - 1, GRID_y + 1, GRID_z - 1);
+	KeyTriple key08 = std::make_tuple(GRID_x,	  GRID_y + 1, GRID_z - 1);
+	KeyTriple key09 = std::make_tuple(GRID_x + 1, GRID_y + 1, GRID_z - 1);
+	KeyTriple key10 = std::make_tuple(GRID_x - 1, GRID_y - 1, GRID_z);
+	KeyTriple key11 = std::make_tuple(GRID_x,	  GRID_y - 1, GRID_z);
+	KeyTriple key12 = std::make_tuple(GRID_x + 1, GRID_y - 1, GRID_z);
+	KeyTriple key13 = std::make_tuple(GRID_x - 1, GRID_y,	  GRID_z);
+	KeyTriple key14 = std::make_tuple(GRID_x,	  GRID_y,	  GRID_z);
+	KeyTriple key15 = std::make_tuple(GRID_x + 1, GRID_y,	  GRID_z);
+	KeyTriple key16 = std::make_tuple(GRID_x - 1, GRID_y + 1, GRID_z);
+	KeyTriple key17 = std::make_tuple(GRID_x,	  GRID_y + 1, GRID_z);
+	KeyTriple key18 = std::make_tuple(GRID_x + 1, GRID_y + 1, GRID_z);
+	KeyTriple key19 = std::make_tuple(GRID_x - 1, GRID_y - 1, GRID_z + 1);
+	KeyTriple key20 = std::make_tuple(GRID_x,	  GRID_y - 1, GRID_z + 1);
+	KeyTriple key21 = std::make_tuple(GRID_x + 1, GRID_y - 1, GRID_z + 1);
+	KeyTriple key22 = std::make_tuple(GRID_x - 1, GRID_y,	  GRID_z + 1);
+	KeyTriple key23 = std::make_tuple(GRID_x,	  GRID_y,	  GRID_z + 1);
+	KeyTriple key24 = std::make_tuple(GRID_x + 1, GRID_y,	  GRID_z + 1);
+	KeyTriple key25 = std::make_tuple(GRID_x - 1, GRID_y + 1, GRID_z + 1);
+	KeyTriple key26 = std::make_tuple(GRID_x,	  GRID_y + 1, GRID_z + 1);
+	KeyTriple key27 = std::make_tuple(GRID_x + 1, GRID_y + 1, GRID_z + 1);
+	
+	gridFrustrum[key01] = bunn;
+	gridFrustrum[key02] = bunn;
+	gridFrustrum[key03] = bunn;
+	gridFrustrum[key04] = bunn;
+	gridFrustrum[key05] = bunn;
+	gridFrustrum[key06] = bunn;
+	gridFrustrum[key07] = bunn;
+	gridFrustrum[key08] = bunn;
+	gridFrustrum[key09] = bunn;
+	gridFrustrum[key10] = bunn;
+	gridFrustrum[key11] = bunn;
+	gridFrustrum[key12] = bunn;
+	gridFrustrum[key13] = bunn;
+	gridFrustrum[key14] = bunn;
+	gridFrustrum[key15] = bunn;
+	gridFrustrum[key16] = bunn;
+	gridFrustrum[key17] = bunn;
+	gridFrustrum[key18] = bunn;
+	gridFrustrum[key19] = bunn;
+	gridFrustrum[key20] = bunn;
+	gridFrustrum[key21] = bunn;
+	gridFrustrum[key22] = bunn;
+	gridFrustrum[key23] = bunn;
+	gridFrustrum[key24] = bunn;
+	gridFrustrum[key25] = bunn;
+	gridFrustrum[key26] = bunn;
+	gridFrustrum[key27] = bunn;
+
+	//std::cout << "Check grid:" << gridFrustrum[key] << std::endl;
+}
+
+void refreshGridFrustrum()
+{
+	KeyTriple key01 = std::make_tuple(GRID_x - 1, GRID_y - 1, GRID_z - 1);
+	KeyTriple key02 = std::make_tuple(GRID_x, GRID_y - 1, GRID_z - 1);
+	KeyTriple key03 = std::make_tuple(GRID_x + 1, GRID_y - 1, GRID_z - 1);
+	KeyTriple key04 = std::make_tuple(GRID_x - 1, GRID_y, GRID_z - 1);
+	KeyTriple key05 = std::make_tuple(GRID_x, GRID_y, GRID_z - 1);
+	KeyTriple key06 = std::make_tuple(GRID_x + 1, GRID_y, GRID_z - 1);
+	KeyTriple key07 = std::make_tuple(GRID_x - 1, GRID_y + 1, GRID_z - 1);
+	KeyTriple key08 = std::make_tuple(GRID_x, GRID_y + 1, GRID_z - 1);
+	KeyTriple key09 = std::make_tuple(GRID_x + 1, GRID_y + 1, GRID_z - 1);
+	KeyTriple key10 = std::make_tuple(GRID_x - 1, GRID_y - 1, GRID_z);
+	KeyTriple key11 = std::make_tuple(GRID_x, GRID_y - 1, GRID_z);
+	KeyTriple key12 = std::make_tuple(GRID_x + 1, GRID_y - 1, GRID_z);
+	KeyTriple key13 = std::make_tuple(GRID_x - 1, GRID_y, GRID_z);
+	KeyTriple key14 = std::make_tuple(GRID_x, GRID_y, GRID_z);
+	KeyTriple key15 = std::make_tuple(GRID_x + 1, GRID_y, GRID_z);
+	KeyTriple key16 = std::make_tuple(GRID_x - 1, GRID_y + 1, GRID_z);
+	KeyTriple key17 = std::make_tuple(GRID_x, GRID_y + 1, GRID_z);
+	KeyTriple key18 = std::make_tuple(GRID_x + 1, GRID_y + 1, GRID_z);
+	KeyTriple key19 = std::make_tuple(GRID_x - 1, GRID_y - 1, GRID_z + 1);
+	KeyTriple key20 = std::make_tuple(GRID_x, GRID_y - 1, GRID_z + 1);
+	KeyTriple key21 = std::make_tuple(GRID_x + 1, GRID_y - 1, GRID_z + 1);
+	KeyTriple key22 = std::make_tuple(GRID_x - 1, GRID_y, GRID_z + 1);
+	KeyTriple key23 = std::make_tuple(GRID_x, GRID_y, GRID_z + 1);
+	KeyTriple key24 = std::make_tuple(GRID_x + 1, GRID_y, GRID_z + 1);
+	KeyTriple key25 = std::make_tuple(GRID_x - 1, GRID_y + 1, GRID_z + 1);
+	KeyTriple key26 = std::make_tuple(GRID_x, GRID_y + 1, GRID_z + 1);
+	KeyTriple key27 = std::make_tuple(GRID_x + 1, GRID_y + 1, GRID_z + 1);
+	
+	GridFrustrum cache = gridFrustrum;
+	gridFrustrum.clear();
+
+	if (cache.count(key01) == 1)
+	{
+		gridFrustrum[key01] = cache[key01];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k1\n";
+	}
+
+	if (cache.count(key02) == 1)
+	{
+		gridFrustrum[key02] = cache[key02];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k2\n";
+	}
+
+	if (cache.count(key03) == 1)
+	{
+		gridFrustrum[key03] = cache[key03];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k3\n";
+	}
+
+	if (cache.count(key04) == 1)
+	{
+		gridFrustrum[key04] = cache[key04];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k4\n";
+	}
+
+	if (cache.count(key05) == 1)
+	{
+		gridFrustrum[key05] = cache[key05];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k5\n";
+	}
+
+	if (cache.count(key06) == 1)
+	{
+		gridFrustrum[key06] = cache[key06];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k6\n";
+	}
+
+	if (cache.count(key07) == 1)
+	{
+		gridFrustrum[key07] = cache[key07];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k7\n";
+	}
+
+	if (cache.count(key08) == 1)
+	{
+		gridFrustrum[key08] = cache[key08];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k8\n";
+	}
+
+	if (cache.count(key09) == 1)
+	{
+		gridFrustrum[key09] = cache[key09];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k9\n";
+	}
+
+	if (cache.count(key10) == 1)
+	{
+		gridFrustrum[key10] = cache[key10];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k10\n";
+	}
+
+	if (cache.count(key11) == 1)
+	{
+		gridFrustrum[key11] = cache[key11];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k11\n";
+	}
+
+	if (cache.count(key12) == 1)
+	{
+		gridFrustrum[key12] = cache[key12];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k12\n";
+	}
+
+	if (cache.count(key13) == 1)
+	{
+		gridFrustrum[key13] = cache[key13];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k13\n";
+	}
+
+	if (cache.count(key14) == 1)
+	{
+		gridFrustrum[key14] = cache[key14];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k14\n";
+	}
+
+	if (cache.count(key15) == 1)
+	{
+		gridFrustrum[key15] = cache[key15];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k15\n";
+	}
+
+	if (cache.count(key16) == 1)
+	{
+		gridFrustrum[key16] = cache[key16];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k16\n";
+	}
+
+	if (cache.count(key17) == 1)
+	{
+		gridFrustrum[key17] = cache[key17];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k17\n";
+	}
+
+	if (cache.count(key18) == 1)
+	{
+		gridFrustrum[key18] = cache[key18];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k18\n";
+	}
+
+	if (cache.count(key19) == 1)
+	{
+		gridFrustrum[key19] = cache[key19];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k19\n";
+	}
+
+	if (cache.count(key20) == 1)
+	{
+		gridFrustrum[key20] = cache[key20];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k20\n";
+	}
+
+	if (cache.count(key21) == 1)
+	{
+		gridFrustrum[key21] = cache[key21];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k21\n";
+	}
+
+	if (cache.count(key22) == 1)
+	{
+		gridFrustrum[key22] = cache[key22];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k22\n";
+	}
+
+	if (cache.count(key23) == 1)
+	{
+		gridFrustrum[key23] = cache[key23];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k23\n";
+	}
+
+	if (cache.count(key24) == 1)
+	{
+		gridFrustrum[key24] = cache[key24];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k24\n";
+	}
+
+	if (cache.count(key25) == 1)
+	{
+		gridFrustrum[key25] = cache[key25];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k25\n";
+	}
+
+	if (cache.count(key26) == 1)
+	{
+		gridFrustrum[key26] = cache[key26];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k26\n";
+	}
+
+	if (cache.count(key27) == 1)
+	{
+		gridFrustrum[key27] = cache[key27];
+	}
+	else
+	{
+		//gridFrustrum[key01] = generate;
+		std::cout << "Regenerate k27\n";
+	}
+
+	//std::cout << "Refreshing!\n";
 }
 
 int main(int argc, char *argv[]) {
@@ -794,6 +1204,71 @@ void MakeBunny(int argc, char *argv[])
 	delete grid;
 }
 
+void GenerateBillboard(int width, int height, WindowFramework * window, int index)
+{
+	//Procedurally generate a point in space
+	PT(GeomVertexData) vdata = new GeomVertexData("vertex", GeomVertexFormat::get_v3c4(), Geom::UH_static);
+
+	vdata->set_num_rows(4);
+	GeomVertexWriter vertex(vdata, "vertex");
+	GeomVertexWriter color(vdata, "color");
+
+	vertex.add_data3(0.0f, 0.0f, 0.0f);
+	color.add_data4(1.0, 0, 0, 1);
+
+	vertex.add_data3(width, 0.0f, 0.0f);
+	color.add_data4(0.0, 1.0, 0, 1);
+
+	vertex.add_data3(0.0f, 0.0f, -height);
+	color.add_data4(0.0, 0, 1.0f, 1);
+
+	vertex.add_data3(width, 0.0f, -height);
+	color.add_data4(1.0, 1.0, 0, 1);
+
+	PT(GeomTriangles) prim;
+	prim = new GeomTriangles(Geom::UH_static);
+
+	prim->add_vertex(0);
+	prim->add_vertex(1);
+	prim->add_vertex(2);
+
+	prim->add_vertex(2);
+	prim->add_vertex(1);
+	prim->add_vertex(3);
+
+	prim->close_primitive();
+
+	PT(Geom) geom;
+	geom = new Geom(vdata);
+	geom->add_primitive(prim);
+
+	PT(GeomNode) node;
+	node = new GeomNode("gnode");
+	node->add_geom(geom);
+
+	NodePath nodePath = window->get_pixel_2d().attach_new_node(node);
+
+	PT(TextureStage) ts = new TextureStage("ts");
+	ts->set_mode(TextureStage::M_modulate);
+	//smiley.set_texture(ts, tex);
+
+	PT(Shader) myShader = Shader::load(Shader::ShaderLanguage::SL_GLSL, "shaders/shader.vert", "shaders/shader.frag");
+	nodePath.set_texture(ts, bunn);
+	nodePath.set_shader_input("campos", camera.get_pos());
+	nodePath.set_shader_input("target", mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, 1)));
+	nodePath.set_shader(myShader);
+	nodePath.set_transparency(TransparencyAttrib::Mode::M_alpha);
+
+	if (index == 0) {
+		mainQuad = nodePath;
+	}
+	else
+	{
+		mainQuad01 = nodePath;
+	}
+	
+}
+
 void MakeShadertoy(int argc, char *argv[])
 {
 	// Open a new window framework
@@ -840,59 +1315,21 @@ void MakeShadertoy(int argc, char *argv[])
 	camera.set_pos(0, 0, 1);
 	//window->setup_trackball(); //move camera with mouse, errors while trying to move the camera from code directly
 
-	//PT(Texture) bunn = Render3dTexture();
 	bunn = Render3dTexture();
 
-	//Procedurally generate a point in space
-	vdata = new GeomVertexData("vertex", GeomVertexFormat::get_v3c4(), Geom::UH_static);
+	initGridFrustrum();
 
-	vdata->set_num_rows(4);
-	GeomVertexWriter vertex(vdata, "vertex");
-	GeomVertexWriter color(vdata, "color");
+	std::cout << "max textures: " << window->get_graphics_output()->get_gsg()->get_max_texture_stages() << "\n";
 
-	vertex.add_data3(0.0f, 0.0f, 0.0f);
-	color.add_data4(1.0, 0, 0, 1);
-
-	vertex.add_data3(width, 0.0f, 0.0f);
-	color.add_data4(0.0, 1.0, 0, 1);
-
-	vertex.add_data3(0.0f, 0.0f, -height);
-	color.add_data4(0.0, 0, 1.0f, 1);
-
-	vertex.add_data3(width, 0.0f, -height);
-	color.add_data4(1.0, 1.0, 0, 1);
-
-	PT(GeomTriangles) prim;
-	prim = new GeomTriangles(Geom::UH_static);
-
-	prim->add_vertex(0);
-	prim->add_vertex(1);
-	prim->add_vertex(2);
+	GenerateBillboard(width, height, window, 0);
+	GenerateBillboard(width, height, window, 1);
 	
-	prim->add_vertex(2);
-	prim->add_vertex(1);
-	prim->add_vertex(3);
 
-	prim->close_primitive();
+	//NodePath newnode;
+	//mainQuad.copy_to(newnode);
+	//NodePath nodePath2 = window->get_pixel_2d().attach_new_node(node);
 
-	PT(Geom) geom;
-	geom = new Geom(vdata);
-	geom->add_primitive(prim);
-
-	PT(GeomNode) node;
-	node = new GeomNode("gnode");
-	node->add_geom(geom);
-
-	NodePath nodePath = window->get_pixel_2d().attach_new_node(node);
-
-	PT(Shader) myShader =  Shader::load(Shader::ShaderLanguage::SL_GLSL, "shaders/shader.vert", "shaders/shader.frag");
-	nodePath.set_texture(bunn);
-	nodePath.set_shader_input("campos", camera.get_pos());
-	nodePath.set_shader_input("target", mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, 1)));
-	nodePath.set_shader(myShader);
-
-	mainQuad = nodePath;
-
+	
 	SceneGraphAnalyzer sga;
 	sga.add_node(window->get_pixel_2d().node());
 	sga.write(std::cerr);

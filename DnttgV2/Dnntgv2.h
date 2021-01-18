@@ -7,6 +7,9 @@ using std::random_device;
 using std::sort;
 using std::vector;
 
+typedef std::tuple<int, int, int> KeyTriple;
+typedef std::map<KeyTriple, PT(Texture)> GridFrustrum;
+
 void MakeBunny(int argc, char *argv[]);
 void MakeShadertoy(int argc, char *argv[]);
 void print_results(const char *const tag,
@@ -36,3 +39,9 @@ void spawnSphere(const Event* eventPtr, void* dataPtr);
 
 PT(Texture) Render3dTexture();
 void refresh3dTexture();
+
+void initGridFrustrum();
+void refreshGridFrustrum();
+void GenerateBillboard(int w, int h, WindowFramework * window, int index);
+
+
