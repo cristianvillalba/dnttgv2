@@ -57,8 +57,34 @@ VDBGrid*  grid;
 PT(Texture) bunn;
 
 //Main Quad
-NodePath mainQuad;
 NodePath mainQuad01;
+NodePath mainQuad02;
+NodePath mainQuad03;
+NodePath mainQuad04;
+NodePath mainQuad05;
+NodePath mainQuad06;
+NodePath mainQuad07;
+NodePath mainQuad08;
+NodePath mainQuad09;
+NodePath mainQuad10;
+NodePath mainQuad11;
+NodePath mainQuad12;
+NodePath mainQuad13;
+NodePath mainQuad14;
+NodePath mainQuad15;
+NodePath mainQuad16;
+NodePath mainQuad17;
+NodePath mainQuad18;
+NodePath mainQuad19;
+NodePath mainQuad20;
+NodePath mainQuad21;
+NodePath mainQuad22;
+NodePath mainQuad23;
+NodePath mainQuad24;
+NodePath mainQuad25;
+NodePath mainQuad26;
+NodePath mainQuad27;
+
 
 //Window main
 WindowFramework *mainWindow;
@@ -463,11 +489,91 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 
 	LVector3f lookAtDirection = mainWindow->get_render().get_relative_point(camera, LVector3f(0,0,1));
 
-	mainQuad.set_shader_input("campos", camera.get_pos());
-	mainQuad.set_shader_input("target", lookAtDirection);
+	//mainQuad.set_shader_input("campos", camera.get_pos());
+	//mainQuad.set_shader_input("target", lookAtDirection);
 
-	mainQuad01.set_shader_input("campos", camera.get_pos() - LVector3f(0.5,0.5,0.5));
-	mainQuad01.set_shader_input("target", lookAtDirection);
+	mainQuad01.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 + GRID_x, -1.0 + GRID_y, -1.0 + GRID_z));
+	mainQuad01.set_shader_input("target", lookAtDirection  - LVector3f(-1.0 + GRID_x, -1.0 + GRID_y, -1.0 + GRID_z));
+
+	mainQuad02.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 + GRID_x, -1.0 + GRID_y, -1.0 + GRID_z));
+	mainQuad02.set_shader_input("target", lookAtDirection - LVector3f(0.0 + GRID_x, -1.0 + GRID_y, -1.0 + GRID_z));
+
+	mainQuad03.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 + GRID_x,  -1.0 + GRID_y, -1.0 + GRID_z));
+	mainQuad03.set_shader_input("target", lookAtDirection - LVector3f(1.0 + GRID_x, -1.0 + GRID_y, -1.0 + GRID_z));
+
+	mainQuad04.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 + GRID_x, 0.0 + GRID_y, -1.0 + GRID_z));
+	mainQuad04.set_shader_input("target", lookAtDirection - LVector3f(-1.0 + GRID_x, 0.0 + GRID_y, -1.0 + GRID_z));
+
+	mainQuad05.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 + GRID_x, 0.0 + GRID_y, -1.0 + GRID_z));
+	mainQuad05.set_shader_input("target", lookAtDirection - LVector3f(0.0 + GRID_x, 0.0 + GRID_y, -1.0 + GRID_z));
+
+	mainQuad06.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 + GRID_x, 0.0 + GRID_y, -1.0 + GRID_z));
+	mainQuad06.set_shader_input("target", lookAtDirection - LVector3f(1.0 + GRID_x, 0.0 + GRID_y, -1.0 + GRID_z));
+
+	mainQuad07.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 + GRID_x, 1.0 + GRID_y, -1.0 + GRID_z));
+	mainQuad07.set_shader_input("target", lookAtDirection - LVector3f(-1.0 + GRID_x, 1.0 + GRID_y, -1.0 + GRID_z));
+
+	mainQuad08.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 + GRID_x, 1.0 + GRID_y, -1.0 + GRID_z));
+	mainQuad08.set_shader_input("target", lookAtDirection - LVector3f(0.0 + GRID_x, 1.0 + GRID_y, -1.0 + GRID_z));
+
+	mainQuad09.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 + GRID_x, 1.0 + GRID_y, -1.0 + GRID_z));
+	mainQuad09.set_shader_input("target", lookAtDirection - LVector3f(1.0 + GRID_x, 1.0 + GRID_y, -1.0 + GRID_z));
+
+	//--------------------
+	mainQuad10.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 + GRID_x, -1.0 + GRID_y, 0.0 + GRID_z));
+	mainQuad10.set_shader_input("target", lookAtDirection - LVector3f(-1.0 + GRID_x, -1.0 + GRID_y, 0.0 + GRID_z));
+
+	mainQuad11.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 + GRID_x, -1.0 + GRID_y, 0.0 + GRID_z));
+	mainQuad11.set_shader_input("target", lookAtDirection - LVector3f(0.0 + GRID_x, -1.0 + GRID_y, 0.0 + GRID_z));
+
+	mainQuad12.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 + GRID_x, -1.0 + GRID_y, 0.0 + GRID_z));
+	mainQuad12.set_shader_input("target", lookAtDirection - LVector3f(1.0 + GRID_x, -1.0 + GRID_y, 0.0 + GRID_z));
+
+	mainQuad13.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 + GRID_x, 0.0 + GRID_y, 0.0 + GRID_z));
+	mainQuad13.set_shader_input("target", lookAtDirection - LVector3f(-1.0 + GRID_x, 0.0 + GRID_y, 0.0 + GRID_z));
+
+	mainQuad14.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 + GRID_x, 0.0 + GRID_y, 0.0 + GRID_z));
+	mainQuad14.set_shader_input("target", lookAtDirection - LVector3f(0.0 + GRID_x, 0.0 + GRID_y, 0.0 + GRID_z));
+
+	mainQuad15.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 + GRID_x, 0.0 + GRID_y, 0.0 + GRID_z));
+	mainQuad15.set_shader_input("target", lookAtDirection - LVector3f(1.0 + GRID_x, 0.0 + GRID_y, 0.0 + GRID_z));
+
+	mainQuad16.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 + GRID_x, 1.0 + GRID_y, 0.0 + GRID_z));
+	mainQuad16.set_shader_input("target", lookAtDirection - LVector3f(-1.0 + GRID_x, 1.0 + GRID_y, 0.0 + GRID_z));
+
+	mainQuad17.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 + GRID_x, 1.0 + GRID_y, 0.0 + GRID_z));
+	mainQuad17.set_shader_input("target", lookAtDirection - LVector3f(0.0 + GRID_x, 1.0 + GRID_y, 0.0 + GRID_z));
+
+	mainQuad18.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 + GRID_x, 1.0 + GRID_y, 0.0 + GRID_z));
+	mainQuad18.set_shader_input("target", lookAtDirection - LVector3f(1.0 + GRID_x, 1.0 + GRID_y, 0.0 + GRID_z));
+
+	//--------------------
+	mainQuad19.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 + GRID_x, -1.0 + GRID_y, 1.0 + GRID_z));
+	mainQuad19.set_shader_input("target", lookAtDirection - LVector3f(-1.0 + GRID_x, -1.0 + GRID_y, 1.0 + GRID_z));
+
+	mainQuad20.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 + GRID_x, -1.0 + GRID_y, 1.0 + GRID_z));
+	mainQuad20.set_shader_input("target", lookAtDirection - LVector3f(0.0 + GRID_x, -1.0 + GRID_y, 1.0 + GRID_z));
+
+	mainQuad21.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 + GRID_x, -1.0 + GRID_y, 1.0 + GRID_z));
+	mainQuad21.set_shader_input("target", lookAtDirection - LVector3f(1.0 + GRID_x, -1.0 + GRID_y, 1.0 + GRID_z));
+
+	mainQuad22.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 + GRID_x, 0.0 + GRID_y, 1.0 + GRID_z));
+	mainQuad22.set_shader_input("target", lookAtDirection - LVector3f(-1.0 + GRID_x, 0.0 + GRID_y, 1.0 + GRID_z));
+
+	mainQuad23.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 + GRID_x, 0.0 + GRID_y, 1.0 + GRID_z));
+	mainQuad23.set_shader_input("target", lookAtDirection - LVector3f(0.0 + GRID_x, 0.0 + GRID_y, 1.0 + GRID_z));
+
+	mainQuad24.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 + GRID_x, 0.0 + GRID_y, 1.0 + GRID_z));
+	mainQuad24.set_shader_input("target", lookAtDirection - LVector3f(1.0 + GRID_x, 0.0 + GRID_y, 1.0 + GRID_z));
+
+	mainQuad25.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 + GRID_x, 1.0 + GRID_y, 1.0 + GRID_z));
+	mainQuad25.set_shader_input("target", lookAtDirection - LVector3f(-1.0 + GRID_x, 1.0 + GRID_y, 1.0 + GRID_z));
+
+	mainQuad26.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 + GRID_x, 1.0 + GRID_y, 1.0 + GRID_z));
+	mainQuad26.set_shader_input("target", lookAtDirection - LVector3f(0.0 + GRID_x, 1.0 + GRID_y, 1.0 + GRID_z));
+
+	mainQuad27.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 + GRID_x, 1.0 + GRID_y, 1.0 + GRID_z));
+	mainQuad27.set_shader_input("target", lookAtDirection - LVector3f(1.0 + GRID_x, 1.0 + GRID_y, 1.0 + GRID_z));
 
 
 	if (floor(CAM_x + 0.5) != GRID_x ||
@@ -478,7 +584,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 		GRID_y = floor(CAM_y + 0.5);
 		GRID_z = floor(CAM_z + 0.5);
 
-		//refreshGridFrustrum();
+		refreshGridFrustrum();
 	}
 
 	//std::cout << "x: " << GRID_x << " y: " << GRID_y << " z: " << GRID_z << "\n";
@@ -761,7 +867,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k1\n";
+		//std::cout << "Regenerate k1\n";
+
+		gridFrustrum[key01] = bunn;
 	}
 
 	if (cache.count(key02) == 1)
@@ -771,7 +879,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k2\n";
+		//std::cout << "Regenerate k2\n";
+
+		gridFrustrum[key02] = bunn;
 	}
 
 	if (cache.count(key03) == 1)
@@ -781,7 +891,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k3\n";
+		//std::cout << "Regenerate k3\n";
+
+		gridFrustrum[key03] = bunn;
 	}
 
 	if (cache.count(key04) == 1)
@@ -791,7 +903,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k4\n";
+		//std::cout << "Regenerate k4\n";
+
+		gridFrustrum[key04] = bunn;
 	}
 
 	if (cache.count(key05) == 1)
@@ -801,7 +915,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k5\n";
+		//std::cout << "Regenerate k5\n";
+
+		gridFrustrum[key05] = bunn;
 	}
 
 	if (cache.count(key06) == 1)
@@ -811,7 +927,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k6\n";
+		//std::cout << "Regenerate k6\n";
+
+		gridFrustrum[key06] = bunn;
 	}
 
 	if (cache.count(key07) == 1)
@@ -821,7 +939,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k7\n";
+		//std::cout << "Regenerate k7\n";
+
+		gridFrustrum[key07] = bunn;
 	}
 
 	if (cache.count(key08) == 1)
@@ -831,7 +951,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k8\n";
+		//std::cout << "Regenerate k8\n";
+
+		gridFrustrum[key08] = bunn;
 	}
 
 	if (cache.count(key09) == 1)
@@ -841,7 +963,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k9\n";
+		//std::cout << "Regenerate k9\n";
+
+		gridFrustrum[key09] = bunn;
 	}
 
 	if (cache.count(key10) == 1)
@@ -851,7 +975,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k10\n";
+		//std::cout << "Regenerate k10\n";
+
+		gridFrustrum[key10] = bunn;
 	}
 
 	if (cache.count(key11) == 1)
@@ -861,7 +987,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k11\n";
+		//std::cout << "Regenerate k11\n";
+		
+		gridFrustrum[key11] = bunn;
 	}
 
 	if (cache.count(key12) == 1)
@@ -871,7 +999,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k12\n";
+		//std::cout << "Regenerate k12\n";
+
+		gridFrustrum[key12] = bunn;
 	}
 
 	if (cache.count(key13) == 1)
@@ -881,7 +1011,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k13\n";
+		//std::cout << "Regenerate k13\n";
+
+		gridFrustrum[key13] = bunn;
 	}
 
 	if (cache.count(key14) == 1)
@@ -891,7 +1023,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k14\n";
+		//std::cout << "Regenerate k14\n";
+
+		gridFrustrum[key14] = bunn;
 	}
 
 	if (cache.count(key15) == 1)
@@ -901,7 +1035,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k15\n";
+		//std::cout << "Regenerate k15\n";
+
+		gridFrustrum[key15] = bunn;
 	}
 
 	if (cache.count(key16) == 1)
@@ -911,7 +1047,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k16\n";
+		//std::cout << "Regenerate k16\n";
+
+		gridFrustrum[key16] = bunn;
 	}
 
 	if (cache.count(key17) == 1)
@@ -921,7 +1059,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k17\n";
+		//std::cout << "Regenerate k17\n";
+
+		gridFrustrum[key17] = bunn;
 	}
 
 	if (cache.count(key18) == 1)
@@ -931,7 +1071,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k18\n";
+		//std::cout << "Regenerate k18\n";
+
+		gridFrustrum[key18] = bunn;
 	}
 
 	if (cache.count(key19) == 1)
@@ -941,7 +1083,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k19\n";
+		//std::cout << "Regenerate k19\n";
+
+		gridFrustrum[key19] = bunn;
 	}
 
 	if (cache.count(key20) == 1)
@@ -951,7 +1095,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k20\n";
+		//std::cout << "Regenerate k20\n";
+
+		gridFrustrum[key20] = bunn;
 	}
 
 	if (cache.count(key21) == 1)
@@ -961,7 +1107,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k21\n";
+		//std::cout << "Regenerate k21\n";
+
+		gridFrustrum[key21] = bunn;
 	}
 
 	if (cache.count(key22) == 1)
@@ -971,7 +1119,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k22\n";
+		//std::cout << "Regenerate k22\n";
+
+		gridFrustrum[key22] = bunn;
 	}
 
 	if (cache.count(key23) == 1)
@@ -981,7 +1131,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k23\n";
+		//std::cout << "Regenerate k23\n";
+
+		gridFrustrum[key23] = bunn;
 	}
 
 	if (cache.count(key24) == 1)
@@ -991,7 +1143,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k24\n";
+		//std::cout << "Regenerate k24\n";
+
+		gridFrustrum[key24] = bunn;
 	}
 
 	if (cache.count(key25) == 1)
@@ -1001,7 +1155,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k25\n";
+		//std::cout << "Regenerate k25\n";
+
+		gridFrustrum[key25] = bunn;
 	}
 
 	if (cache.count(key26) == 1)
@@ -1011,7 +1167,9 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k26\n";
+		//std::cout << "Regenerate k26\n";
+
+		gridFrustrum[key26] = bunn;
 	}
 
 	if (cache.count(key27) == 1)
@@ -1021,9 +1179,38 @@ void refreshGridFrustrum()
 	else
 	{
 		//gridFrustrum[key01] = generate;
-		std::cout << "Regenerate k27\n";
+		//std::cout << "Regenerate k27\n";
+
+		gridFrustrum[key27] = bunn;
 	}
 
+	mainQuad01.set_texture(gridFrustrum[key01]);
+	mainQuad02.set_texture(gridFrustrum[key02]);
+	mainQuad03.set_texture(gridFrustrum[key03]);
+	mainQuad04.set_texture(gridFrustrum[key04]);
+	mainQuad05.set_texture(gridFrustrum[key05]);
+	mainQuad06.set_texture(gridFrustrum[key06]);
+	mainQuad07.set_texture(gridFrustrum[key07]);
+	mainQuad08.set_texture(gridFrustrum[key08]);
+	mainQuad09.set_texture(gridFrustrum[key09]);
+	mainQuad10.set_texture(gridFrustrum[key10]);
+	mainQuad11.set_texture(gridFrustrum[key11]);
+	mainQuad12.set_texture(gridFrustrum[key12]);
+	mainQuad13.set_texture(gridFrustrum[key13]);
+	mainQuad14.set_texture(gridFrustrum[key14]);
+	mainQuad15.set_texture(gridFrustrum[key15]);
+	mainQuad16.set_texture(gridFrustrum[key16]);
+	mainQuad17.set_texture(gridFrustrum[key17]);
+	mainQuad18.set_texture(gridFrustrum[key18]);
+	mainQuad19.set_texture(gridFrustrum[key19]);
+	mainQuad20.set_texture(gridFrustrum[key20]);
+	mainQuad21.set_texture(gridFrustrum[key21]);
+	mainQuad22.set_texture(gridFrustrum[key22]);
+	mainQuad23.set_texture(gridFrustrum[key23]);
+	mainQuad24.set_texture(gridFrustrum[key24]);
+	mainQuad25.set_texture(gridFrustrum[key25]);
+	mainQuad26.set_texture(gridFrustrum[key26]);
+	mainQuad27.set_texture(gridFrustrum[key27]);
 	//std::cout << "Refreshing!\n";
 }
 
@@ -1259,14 +1446,117 @@ void GenerateBillboard(int width, int height, WindowFramework * window, int inde
 	nodePath.set_shader(myShader);
 	nodePath.set_transparency(TransparencyAttrib::Mode::M_alpha);
 
-	if (index == 0) {
-		mainQuad = nodePath;
-	}
-	else
+	switch (index)
 	{
+	case 1: {
 		mainQuad01 = nodePath;
+		break;
 	}
-	
+	case 2: {
+		mainQuad02 = nodePath;
+		break;
+	}
+	case 3: {
+		mainQuad03 = nodePath;
+		break;
+	}
+	case 4: {
+		mainQuad04 = nodePath;
+		break;
+	}
+	case 5: {
+		mainQuad05 = nodePath;
+		break;
+	}
+	case 6: {
+		mainQuad06 = nodePath;
+		break;
+	}
+	case 7: {
+		mainQuad07 = nodePath;
+		break;
+	}
+	case 8: {
+		mainQuad08 = nodePath;
+		break;
+	}
+	case 9: {
+		mainQuad09 = nodePath;
+		break;
+	}
+	case 10: {
+		mainQuad10 = nodePath;
+		break;
+	}
+	case 11: {
+		mainQuad11 = nodePath;
+		break;
+	}
+	case 12: {
+		mainQuad12 = nodePath;
+		break;
+	}
+	case 13: {
+		mainQuad13 = nodePath;
+		break;
+	}
+	case 14: {
+		mainQuad14 = nodePath;
+		break;
+	}
+	case 15: {
+		mainQuad15 = nodePath;
+		break;
+	}
+	case 16: {
+		mainQuad16 = nodePath;
+		break;
+	}
+	case 17: {
+		mainQuad17 = nodePath;
+		break;
+	}
+	case 18: {
+		mainQuad18 = nodePath;
+		break;
+	}
+	case 19: {
+		mainQuad19 = nodePath;
+		break;
+	}
+	case 20: {
+		mainQuad20 = nodePath;
+		break;
+	}
+	case 21: {
+		mainQuad21 = nodePath;
+		break;
+	}
+	case 22: {
+		mainQuad22 = nodePath;
+		break;
+	}
+	case 23: {
+		mainQuad23 = nodePath;
+		break;
+	}
+	case 24: {
+		mainQuad24 = nodePath;
+		break;
+	}
+	case 25: {
+		mainQuad25 = nodePath;
+		break;
+	}
+	case 26: {
+		mainQuad26 = nodePath;
+		break;
+	}
+	case 27: {
+		mainQuad27 = nodePath;
+		break;
+	}
+	}
 }
 
 void MakeShadertoy(int argc, char *argv[])
@@ -1321,8 +1611,33 @@ void MakeShadertoy(int argc, char *argv[])
 
 	std::cout << "max textures: " << window->get_graphics_output()->get_gsg()->get_max_texture_stages() << "\n";
 
-	GenerateBillboard(width, height, window, 0);
 	GenerateBillboard(width, height, window, 1);
+	GenerateBillboard(width, height, window, 2);
+	GenerateBillboard(width, height, window, 3);
+	GenerateBillboard(width, height, window, 4);
+	GenerateBillboard(width, height, window, 5);
+	GenerateBillboard(width, height, window, 6);
+	GenerateBillboard(width, height, window, 7);
+	GenerateBillboard(width, height, window, 8);
+	GenerateBillboard(width, height, window, 9);
+	GenerateBillboard(width, height, window, 10);
+	GenerateBillboard(width, height, window, 11);
+	GenerateBillboard(width, height, window, 12);
+	GenerateBillboard(width, height, window, 13);
+	GenerateBillboard(width, height, window, 14);
+	GenerateBillboard(width, height, window, 15);
+	GenerateBillboard(width, height, window, 16);
+	GenerateBillboard(width, height, window, 17);
+	GenerateBillboard(width, height, window, 18);
+	GenerateBillboard(width, height, window, 19);
+	GenerateBillboard(width, height, window, 20);
+	GenerateBillboard(width, height, window, 21);
+	GenerateBillboard(width, height, window, 22);
+	GenerateBillboard(width, height, window, 23);
+	GenerateBillboard(width, height, window, 24);
+	GenerateBillboard(width, height, window, 25);
+	GenerateBillboard(width, height, window, 26);
+	GenerateBillboard(width, height, window, 27);
 	
 
 	//NodePath newnode;
