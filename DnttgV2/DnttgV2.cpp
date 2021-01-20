@@ -20,6 +20,9 @@
 
 #include <load_prc_file.h>
 
+#include "orthographicLens.h"
+#include <texturePool.h>
+
 #include "VDBGrid.h"
 #include "FilterManager.h"
 
@@ -47,7 +50,7 @@ PT(ClockObject) globalClock = ClockObject::get_global_clock();
 // Here's what we'll store the camera in.
 NodePath camera;
 
-//Screen Projection Plane
+//Screen Projection Plane - for rasterizer with points
 PT(GeomVertexData) vdata;
 
 //VDB class handler
@@ -1391,26 +1394,26 @@ void MakeBunny(int argc, char *argv[])
 	delete grid;
 }
 
-void GenerateBillboard(int width, int height, WindowFramework * window, int index)
+void GenerateMainBillboard(int width, int height, WindowFramework * window, PT(Texture) texture)
 {
 	//Procedurally generate a point in space
-	PT(GeomVertexData) vdata = new GeomVertexData("vertex", GeomVertexFormat::get_v3c4(), Geom::UH_static);
+	PT(GeomVertexData) vdata = new GeomVertexData("vertex", GeomVertexFormat::get_v3t2(), Geom::UH_static);
 
 	vdata->set_num_rows(4);
 	GeomVertexWriter vertex(vdata, "vertex");
-	GeomVertexWriter color(vdata, "color");
+	GeomVertexWriter texcoord(vdata, "texcoord");
 
 	vertex.add_data3(0.0f, 0.0f, 0.0f);
-	color.add_data4(1.0, 0, 0, 1);
+	texcoord.add_data2(0.0, 1.0);
 
 	vertex.add_data3(width, 0.0f, 0.0f);
-	color.add_data4(0.0, 1.0, 0, 1);
+	texcoord.add_data2(1.0, 1.0);
 
 	vertex.add_data3(0.0f, 0.0f, -height);
-	color.add_data4(0.0, 0, 1.0f, 1);
+	texcoord.add_data2(0.0, 0.0);
 
 	vertex.add_data3(width, 0.0f, -height);
-	color.add_data4(1.0, 1.0, 0, 1);
+	texcoord.add_data2(1.0, 0.0);
 
 	PT(GeomTriangles) prim;
 	prim = new GeomTriangles(Geom::UH_static);
@@ -1435,6 +1438,11 @@ void GenerateBillboard(int width, int height, WindowFramework * window, int inde
 
 	NodePath nodePath = window->get_pixel_2d().attach_new_node(node);
 
+	nodePath.set_texture(texture);
+}
+
+void InitShader(int index, NodePath nodePath)
+{
 	PT(TextureStage) ts = new TextureStage("ts");
 	ts->set_mode(TextureStage::M_modulate);
 	//smiley.set_texture(ts, tex);
@@ -1445,6 +1453,7 @@ void GenerateBillboard(int width, int height, WindowFramework * window, int inde
 	nodePath.set_shader_input("target", mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, 1)));
 	nodePath.set_shader(myShader);
 	nodePath.set_transparency(TransparencyAttrib::Mode::M_alpha);
+
 
 	switch (index)
 	{
@@ -1559,6 +1568,131 @@ void GenerateBillboard(int width, int height, WindowFramework * window, int inde
 	}
 }
 
+void GenerateBillboard(int width, int height, WindowFramework * window, int index, bool useBuffer, NodePath parentNode, int centerx, int centery)
+{
+	//Procedurally generate a point in space
+	PT(GeomVertexData) vdatab = new GeomVertexData("vertex", GeomVertexFormat::get_v3c4(), Geom::UH_static);
+
+	vdatab->set_num_rows(4);
+	GeomVertexWriter vertex(vdatab, "vertex");
+	GeomVertexWriter color(vdatab, "color");
+
+	vertex.add_data3(0.0f, 0.0f, 0.0f);
+	color.add_data4(1.0, 0, 0, 1);
+
+	vertex.add_data3(width, 0.0f, 0.0f);
+	color.add_data4(0.0, 1.0, 0, 1);
+
+	vertex.add_data3(0.0f, 0.0f, -height);
+	color.add_data4(0.0, 0, 1.0f, 1);
+
+	vertex.add_data3(width, 0.0f, -height);
+	color.add_data4(1.0, 1.0, 0, 1);
+
+	PT(GeomTriangles) prim;
+	prim = new GeomTriangles(Geom::UH_static);
+
+	//order of triangles should be opposite
+	prim->add_vertex(2);
+	prim->add_vertex(1);
+	prim->add_vertex(0);
+
+	prim->add_vertex(3);
+	prim->add_vertex(1);
+	prim->add_vertex(2);
+
+	prim->close_primitive();
+
+	PT(Geom) geom;
+	geom = new Geom(vdatab);
+	geom->add_primitive(prim);
+
+	PT(GeomNode) node;
+	node = new GeomNode("gnode" + index);
+	node->add_geom(geom);
+
+	if (useBuffer)
+	{
+		NodePath nodePath = parentNode.attach_new_node(node);		
+		InitShader(index, nodePath);
+
+		nodePath.set_pos(centerx, 0, centery);
+	}
+	else
+	{
+		NodePath nodePath = window->get_pixel_2d().attach_new_node(node);
+		InitShader(index, nodePath);
+	}
+
+}
+
+void GenerateTextureBuffer(int width, int height, WindowFramework * window, NodePath testscene)
+{
+	PT(GraphicsOutput) mybuffer;
+	PT(Texture) mytexture;
+	PT(Camera) mycamera;
+	PT(DisplayRegion) region;
+	NodePath mycameraNP;
+	NodePath myscene;
+
+	int texsize = 128;
+
+	mybuffer = window->get_graphics_output()->make_texture_buffer("My Buffer", texsize, texsize);
+	mytexture = mybuffer->get_texture();
+	mybuffer->set_sort(-100);
+	mycamera = new Camera("my camera");
+	mycameraNP = window->get_render().attach_new_node(mycamera);
+	region = mybuffer->make_display_region();
+	region->set_camera(mycameraNP);
+	myscene = NodePath("My Scene");
+	myscene.set_depth_test(false);
+	myscene.set_depth_write(false);
+	mycameraNP.reparent_to(myscene);
+
+	PT(OrthographicLens) lens = new OrthographicLens();
+	lens->set_film_size(width, height);
+	lens->set_near_far(-1000, 1000);
+	mycamera->set_lens(lens);
+
+	//Debug only - check if texture can be displayer on main billboard
+	//LoaderOptions options;
+	//PT(Texture) tex = TexturePool::load_texture("p.png", 0, false, options);
+	//GenerateMainBillboard(width, height, window, tex);
+
+	//Debug only - test if we can add nodes to myscene
+	//testscene.reparent_to(myscene);
+	
+	GenerateMainBillboard(width, height, window, mytexture);
+
+	GenerateBillboard(width, height, window, 1, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 2, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 3, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 4, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 5, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 6, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 7, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 8, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 9, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 10, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 11, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 12, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 13, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 14, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 15, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 16, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 17, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 18, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 19, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 20, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 21, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 22, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 23, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 24, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 25, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 26, true, myscene,- width/2, height/2);
+	GenerateBillboard(width, height, window, 27, true, myscene,- width/2, height/2);
+}
+
 void MakeShadertoy(int argc, char *argv[])
 {
 	// Open a new window framework
@@ -1611,33 +1745,41 @@ void MakeShadertoy(int argc, char *argv[])
 
 	std::cout << "max textures: " << window->get_graphics_output()->get_gsg()->get_max_texture_stages() << "\n";
 
-	GenerateBillboard(width, height, window, 1);
-	GenerateBillboard(width, height, window, 2);
-	GenerateBillboard(width, height, window, 3);
-	GenerateBillboard(width, height, window, 4);
-	GenerateBillboard(width, height, window, 5);
-	GenerateBillboard(width, height, window, 6);
-	GenerateBillboard(width, height, window, 7);
-	GenerateBillboard(width, height, window, 8);
-	GenerateBillboard(width, height, window, 9);
-	GenerateBillboard(width, height, window, 10);
-	GenerateBillboard(width, height, window, 11);
-	GenerateBillboard(width, height, window, 12);
-	GenerateBillboard(width, height, window, 13);
-	GenerateBillboard(width, height, window, 14);
-	GenerateBillboard(width, height, window, 15);
-	GenerateBillboard(width, height, window, 16);
-	GenerateBillboard(width, height, window, 17);
-	GenerateBillboard(width, height, window, 18);
-	GenerateBillboard(width, height, window, 19);
-	GenerateBillboard(width, height, window, 20);
-	GenerateBillboard(width, height, window, 21);
-	GenerateBillboard(width, height, window, 22);
-	GenerateBillboard(width, height, window, 23);
-	GenerateBillboard(width, height, window, 24);
-	GenerateBillboard(width, height, window, 25);
-	GenerateBillboard(width, height, window, 26);
-	GenerateBillboard(width, height, window, 27);
+	// debug only - Load the environment model and test it on the billboard
+	NodePath envscene = window->load_model(framework.get_models(), "models/environment");
+	// Apply scale and position transforms to the model.
+	envscene.set_scale(0.25f, 0.25f, 0.25f);
+	envscene.set_pos(-8, 42, 0);
+
+	GenerateTextureBuffer(width, height, window, envscene);
+
+	//GenerateBillboard(width, height, window, 1, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 2, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 3, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 4, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 5, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 6, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 7, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 8, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 9, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 10, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 11, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 12, false, (NodePath) nullptr);
+	//GenerateBillboard(width, height, window, 13, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 14, false, (NodePath) nullptr);
+	//GenerateBillboard(width, height, window, 15, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 16, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 17, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 18, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 19, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 20, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 21, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 22, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 23, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 24, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 25, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 26, false, (NodePath)nullptr);
+	//GenerateBillboard(width, height, window, 27, false, (NodePath)nullptr);
 	
 
 	//NodePath newnode;

@@ -6,8 +6,8 @@ c:\users\cristian.villalba\source\repos\dnttgv2\vcpkg\installed\x64-windows\incl
 CL : TBB warning : tbb/atomic.h is deprecated. For details, please see Deprecated Features appendix in the TBB reference manual.
 CL : TBB warning : tbb/task_scheduler_init.h is deprecated. For details, please see Deprecated Features appendix in the TBB reference manual.
   Generating code
-  2 of 4790 functions (<0.1%) were compiled, the rest were copied from previous compilation.
+  3 of 4848 functions (<0.1%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
-    1 functions had inline decision re-evaluated but remain unchanged
+    2 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
   DnttgV2.vcxproj -> C:\Users\cristian.villalba\source\repos\DnttgV2\x64\Release\DnttgV2.exe

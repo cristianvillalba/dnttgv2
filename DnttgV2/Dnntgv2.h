@@ -42,6 +42,10 @@ void refresh3dTexture();
 
 void initGridFrustrum();
 void refreshGridFrustrum();
-void GenerateBillboard(int w, int h, WindowFramework * window, int index);
+void GenerateMainBillboard(int w, int h, WindowFramework * window, PT(Texture) mtex);
+void GenerateBillboard(int w, int h, WindowFramework * window, int index, bool useBuffer, NodePath parent, int centerx, int centery);
+void GenerateTextureBuffer(int w, int h, WindowFramework * window, NodePath s);
+void InitShader(int index, NodePath node);
+
 
 
