@@ -1445,7 +1445,6 @@ void InitShader(int index, NodePath nodePath)
 {
 	PT(TextureStage) ts = new TextureStage("ts");
 	ts->set_mode(TextureStage::M_modulate);
-	//smiley.set_texture(ts, tex);
 
 	PT(Shader) myShader = Shader::load(Shader::ShaderLanguage::SL_GLSL, "shaders/shader.vert", "shaders/shader.frag");
 	nodePath.set_texture(ts, bunn);

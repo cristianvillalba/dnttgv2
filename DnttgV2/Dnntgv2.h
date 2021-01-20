@@ -40,6 +40,7 @@ void spawnSphere(const Event* eventPtr, void* dataPtr);
 PT(Texture) Render3dTexture();
 void refresh3dTexture();
 
+//Headers
 void initGridFrustrum();
 void refreshGridFrustrum();
 void GenerateMainBillboard(int w, int h, WindowFramework * window, PT(Texture) mtex);
