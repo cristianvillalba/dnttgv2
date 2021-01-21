@@ -227,14 +227,14 @@ float VDBGrid::getValue(float x, float y, float z)
 	//return (float)indexValue;
 }
 
-void VDBGrid::spawnSphere()
+void VDBGrid::spawnSphere(LVector3f pos)
 {
 	openvdb::tools::changeBackground(grid->tree(), 1.5);
 
 	// Generate a level set grid.
 	openvdb::FloatGrid::Ptr sphereGrid =
 		openvdb::tools::createLevelSetSphere<openvdb::FloatGrid>(/*radius=*/200.0,
-			/*center=*/openvdb::Vec3f(0, 0, 0), /*voxel size=*/1.5);
+			/*center=*/openvdb::Vec3f(pos.get_x(), pos.get_y(), pos.get_z()), /*voxel size=*/1.5);
 
 	for (openvdb::FloatGrid::ValueOffIter iter = sphereGrid->beginValueOff(); iter; ++iter) {
 		if (iter.getValue() < 0.0) {

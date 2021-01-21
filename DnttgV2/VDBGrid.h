@@ -16,6 +16,8 @@
 #include <openvdb/tools/LevelSetSphere.h>
 #include <openvdb/tools/Composite.h>
 
+#include "pandaFramework.h"
+#include "pandaSystem.h"
 
 class VDBGrid
 {
@@ -31,6 +33,6 @@ public:
 	float getValue(float x, float y, float z);
 	//void movePoints();
 
-	void spawnSphere();
+	void spawnSphere(LVector3f pos);
 };
 

@@ -37,7 +37,7 @@ void spinRCameraUp(const Event* eventPtr, void* dataPtr);
 
 void spawnSphere(const Event* eventPtr, void* dataPtr);
 
-PT(Texture) Render3dTexture();
+PT(Texture) Render3dTexture(int gridx, int griy, int gridz);
 void refresh3dTexture();
 
 //Headers
