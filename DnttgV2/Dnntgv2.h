@@ -39,6 +39,7 @@ void spawnSphere(const Event* eventPtr, void* dataPtr);
 
 PT(Texture) Render3dTexture(int gridx, int griy, int gridz);
 void refresh3dTexture();
+void refresh3dTexture(PT(Texture) texture, int gridx, int gridy, int gridz);
 
 //Headers
 void initGridFrustrum();
@@ -47,6 +48,7 @@ void GenerateMainBillboard(int w, int h, WindowFramework * window, PT(Texture) m
 void GenerateBillboard(int w, int h, WindowFramework * window, int index, bool useBuffer, NodePath parent, int centerx, int centery);
 void GenerateTextureBuffer(int w, int h, WindowFramework * window, NodePath s);
 void InitShader(int index, NodePath node);
+void CopyTexture(PT(Texture) origin, PT(Texture) destination);
 
 
 

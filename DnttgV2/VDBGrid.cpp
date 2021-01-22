@@ -189,6 +189,11 @@ int VDBGrid::initGrid()
 	std::cout << "PointCount=" << count << std::endl;
 	*/
 
+
+	//for debug purposes
+	spawnSphere(LVector3f(750, 0, 1500)); //axis are inverted  looks like 1500 is middle
+	spawnSphere(LVector3f(-750, 0, 1500)); //axis are inverted  looks like 1500 is middle
+
 	return 0;
 }
 
