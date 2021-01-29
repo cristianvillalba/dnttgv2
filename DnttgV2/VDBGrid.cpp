@@ -191,8 +191,8 @@ int VDBGrid::initGrid()
 
 
 	//for debug purposes
-	spawnSphere(LVector3f(750, 0, 1500)); //axis are inverted  looks like 1500 is middle
-	spawnSphere(LVector3f(-750, 0, 1500)); //axis are inverted  looks like 1500 is middle
+	spawnSphere(LVector3f(-1000, 0, -1000)); //axis are inverted  looks like 1000 is middle
+	//spawnSphere(LVector3f(-500, 0, 500)); //axis are inverted  looks like 1000 is middle
 
 	return 0;
 }
@@ -239,7 +239,7 @@ void VDBGrid::spawnSphere(LVector3f pos)
 	// Generate a level set grid.
 	openvdb::FloatGrid::Ptr sphereGrid =
 		openvdb::tools::createLevelSetSphere<openvdb::FloatGrid>(/*radius=*/200.0,
-			/*center=*/openvdb::Vec3f(pos.get_x(), pos.get_y(), pos.get_z()), /*voxel size=*/1.5);
+			/*center=*/openvdb::Vec3f(pos.get_x(), pos.get_y(), pos.get_z()), /*voxel size=*/1.0);
 
 	for (openvdb::FloatGrid::ValueOffIter iter = sphereGrid->beginValueOff(); iter; ++iter) {
 		if (iter.getValue() < 0.0) {

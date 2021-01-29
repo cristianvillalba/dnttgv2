@@ -1,4 +1,6 @@
 #pragma once
+#include <tuple>
+
 using std::chrono::duration;
 using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
@@ -9,6 +11,9 @@ using std::vector;
 
 typedef std::tuple<int, int, int> KeyTriple;
 typedef std::map<KeyTriple, PT(Texture)> GridFrustrum;
+
+typedef std::tuple<int, KeyTriple> CopyTuple;
+typedef std::tuple<int, int, int, int> RefreshTuple;
 
 void MakeBunny(int argc, char *argv[]);
 void MakeShadertoy(int argc, char *argv[]);
