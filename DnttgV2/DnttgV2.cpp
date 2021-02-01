@@ -141,7 +141,16 @@ struct TaskArgs{
 	int gridz;
 };
 
+struct CopyArgs {
+	int index;
+	PT(Texture) data;
+};
+
+
 TaskArgs* _alltasks[27];
+CopyArgs* _copytasks[27];
+
+//PT(Shader) copyTextureShader;
 
 
 void print_results(const char *const tag,
@@ -303,7 +312,10 @@ AsyncTask::DoneStatus modifyGrid(GenericAsyncTask *task, void *data)
 
 		grid->spawnSphere(fw);
 
-		refresh3dTexture();
+		//refresh3dTexture();
+		
+		refresh3dTexture(gridTextureArray[13], GRID_x, GRID_y, GRID_z);//only refresh center
+
 		SPAWN = false;
 	}
 
@@ -625,91 +637,6 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 
 	LVector3f lookAtDirection = mainWindow->get_render().get_relative_point(camera, LVector3f(0,0,1));
 
-	/*
-	mainQuad01.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 + GRID_x, -1.0 + GRID_y, -1.0 + GRID_z));
-	mainQuad01.set_shader_input("target", lookAtDirection  - LVector3f(-1.0 + GRID_x, -1.0 + GRID_y, -1.0 + GRID_z));
-
-	mainQuad02.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 + GRID_x, -1.0 + GRID_y, -1.0 + GRID_z));
-	mainQuad02.set_shader_input("target", lookAtDirection - LVector3f(0.0 + GRID_x, -1.0 + GRID_y, -1.0 + GRID_z));
-
-	mainQuad03.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 + GRID_x,  -1.0 + GRID_y, -1.0 + GRID_z));
-	mainQuad03.set_shader_input("target", lookAtDirection - LVector3f(1.0 + GRID_x, -1.0 + GRID_y, -1.0 + GRID_z));
-
-	mainQuad04.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 + GRID_x, 0.0 + GRID_y, -1.0 + GRID_z));
-	mainQuad04.set_shader_input("target", lookAtDirection - LVector3f(-1.0 + GRID_x, 0.0 + GRID_y, -1.0 + GRID_z));
-
-	mainQuad05.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 + GRID_x, 0.0 + GRID_y, -1.0 + GRID_z));
-	mainQuad05.set_shader_input("target", lookAtDirection - LVector3f(0.0 + GRID_x, 0.0 + GRID_y, -1.0 + GRID_z));
-
-	mainQuad06.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 + GRID_x, 0.0 + GRID_y, -1.0 + GRID_z));
-	mainQuad06.set_shader_input("target", lookAtDirection - LVector3f(1.0 + GRID_x, 0.0 + GRID_y, -1.0 + GRID_z));
-
-	mainQuad07.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 + GRID_x, 1.0 + GRID_y, -1.0 + GRID_z));
-	mainQuad07.set_shader_input("target", lookAtDirection - LVector3f(-1.0 + GRID_x, 1.0 + GRID_y, -1.0 + GRID_z));
-
-	mainQuad08.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 + GRID_x, 1.0 + GRID_y, -1.0 + GRID_z));
-	mainQuad08.set_shader_input("target", lookAtDirection - LVector3f(0.0 + GRID_x, 1.0 + GRID_y, -1.0 + GRID_z));
-
-	mainQuad09.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 + GRID_x, 1.0 + GRID_y, -1.0 + GRID_z));
-	mainQuad09.set_shader_input("target", lookAtDirection - LVector3f(1.0 + GRID_x, 1.0 + GRID_y, -1.0 + GRID_z));
-
-	//--------------------
-	mainQuad10.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 + GRID_x, -1.0 + GRID_y, 0.0 + GRID_z));
-	mainQuad10.set_shader_input("target", lookAtDirection - LVector3f(-1.0 + GRID_x, -1.0 + GRID_y, 0.0 + GRID_z));
-
-	mainQuad11.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 + GRID_x, -1.0 + GRID_y, 0.0 + GRID_z));
-	mainQuad11.set_shader_input("target", lookAtDirection - LVector3f(0.0 + GRID_x, -1.0 + GRID_y, 0.0 + GRID_z));
-
-	mainQuad12.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 + GRID_x, -1.0 + GRID_y, 0.0 + GRID_z));
-	mainQuad12.set_shader_input("target", lookAtDirection - LVector3f(1.0 + GRID_x, -1.0 + GRID_y, 0.0 + GRID_z));
-
-	mainQuad13.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 + GRID_x, 0.0 + GRID_y, 0.0 + GRID_z));
-	mainQuad13.set_shader_input("target", lookAtDirection - LVector3f(-1.0 + GRID_x, 0.0 + GRID_y, 0.0 + GRID_z));
-
-	mainQuad14.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 + GRID_x, 0.0 + GRID_y, 0.0 + GRID_z));
-	mainQuad14.set_shader_input("target", lookAtDirection - LVector3f(0.0 + GRID_x, 0.0 + GRID_y, 0.0 + GRID_z));
-
-	mainQuad15.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 + GRID_x, 0.0 + GRID_y, 0.0 + GRID_z));
-	mainQuad15.set_shader_input("target", lookAtDirection - LVector3f(1.0 + GRID_x, 0.0 + GRID_y, 0.0 + GRID_z));
-
-	mainQuad16.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 + GRID_x, 1.0 + GRID_y, 0.0 + GRID_z));
-	mainQuad16.set_shader_input("target", lookAtDirection - LVector3f(-1.0 + GRID_x, 1.0 + GRID_y, 0.0 + GRID_z));
-
-	mainQuad17.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 + GRID_x, 1.0 + GRID_y, 0.0 + GRID_z));
-	mainQuad17.set_shader_input("target", lookAtDirection - LVector3f(0.0 + GRID_x, 1.0 + GRID_y, 0.0 + GRID_z));
-
-	mainQuad18.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 + GRID_x, 1.0 + GRID_y, 0.0 + GRID_z));
-	mainQuad18.set_shader_input("target", lookAtDirection - LVector3f(1.0 + GRID_x, 1.0 + GRID_y, 0.0 + GRID_z));
-
-	//--------------------
-	mainQuad19.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 + GRID_x, -1.0 + GRID_y, 1.0 + GRID_z));
-	mainQuad19.set_shader_input("target", lookAtDirection - LVector3f(-1.0 + GRID_x, -1.0 + GRID_y, 1.0 + GRID_z));
-
-	mainQuad20.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 + GRID_x, -1.0 + GRID_y, 1.0 + GRID_z));
-	mainQuad20.set_shader_input("target", lookAtDirection - LVector3f(0.0 + GRID_x, -1.0 + GRID_y, 1.0 + GRID_z));
-
-	mainQuad21.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 + GRID_x, -1.0 + GRID_y, 1.0 + GRID_z));
-	mainQuad21.set_shader_input("target", lookAtDirection - LVector3f(1.0 + GRID_x, -1.0 + GRID_y, 1.0 + GRID_z));
-
-	mainQuad22.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 + GRID_x, 0.0 + GRID_y, 1.0 + GRID_z));
-	mainQuad22.set_shader_input("target", lookAtDirection - LVector3f(-1.0 + GRID_x, 0.0 + GRID_y, 1.0 + GRID_z));
-
-	mainQuad23.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 + GRID_x, 0.0 + GRID_y, 1.0 + GRID_z));
-	mainQuad23.set_shader_input("target", lookAtDirection - LVector3f(0.0 + GRID_x, 0.0 + GRID_y, 1.0 + GRID_z));
-
-	mainQuad24.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 + GRID_x, 0.0 + GRID_y, 1.0 + GRID_z));
-	mainQuad24.set_shader_input("target", lookAtDirection - LVector3f(1.0 + GRID_x, 0.0 + GRID_y, 1.0 + GRID_z));
-
-	mainQuad25.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 + GRID_x, 1.0 + GRID_y, 1.0 + GRID_z));
-	mainQuad25.set_shader_input("target", lookAtDirection - LVector3f(-1.0 + GRID_x, 1.0 + GRID_y, 1.0 + GRID_z));
-
-	mainQuad26.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 + GRID_x, 1.0 + GRID_y, 1.0 + GRID_z));
-	mainQuad26.set_shader_input("target", lookAtDirection - LVector3f(0.0 + GRID_x, 1.0 + GRID_y, 1.0 + GRID_z));
-
-	mainQuad27.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 + GRID_x, 1.0 + GRID_y, 1.0 + GRID_z));
-	mainQuad27.set_shader_input("target", lookAtDirection - LVector3f(1.0 + GRID_x, 1.0 + GRID_y, 1.0 + GRID_z));
-	*/
-	
 	mainQuad01.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 , 1.0 , 1.0 ));
 	mainQuad01.set_shader_input("target", lookAtDirection - LVector3f(1.0 , 1.0 , 1.0 ));
 
@@ -832,13 +759,22 @@ AsyncTask::DoneStatus cameraTask(GenericAsyncTask *task, void *data) {
 	return AsyncTask::DS_cont;
 }
 
+AsyncTask::DoneStatus copyParallelTextureTask(GenericAsyncTask *task, void *data)
+{
+	CopyArgs* taskdata = (CopyArgs*)data;
+
+	//CopyTexture(taskdata->data, gridTextureArray[taskdata->index]);
+
+	return AsyncTask::DS_done;
+}
+
 AsyncTask::DoneStatus renderParallelTextureTask(GenericAsyncTask *task, void *data) {
 
 	TaskArgs* taskdata = (TaskArgs*)data;
 
 	gridTextureArray[taskdata->index] = Render3dTexture(taskdata->gridx, taskdata->gridy, taskdata->gridz);
 
-	std::cout << "vector index: " << taskdata->index <<"\n";
+	//std::cout << "vector index: " << taskdata->index <<"\n";
 	switch (taskdata->index)
 	{
 	case 0:
@@ -1033,6 +969,229 @@ AsyncTask::DoneStatus renderParallelTextureTask(GenericAsyncTask *task, void *da
 
 	}
 	return AsyncTask::DS_done;
+}
+
+void CopyAndRefreshTexture(CopyTuple params, GridFrustrum cache)
+{
+	//// Create a dummy node and apply the shader to it
+	//NodePath dummy("dummy");
+	//dummy.set_shader(copyTextureShader);
+	//dummy.set_shader_input("fromTex", cache[std::get<1>(params)]);
+	//dummy.set_shader_input("toTex", gridTextureArray[std::get<0>(params)]);
+
+	//// Retrieve the underlying ShaderAttrib
+	//CPT(ShaderAttrib) sattr = DCAST(ShaderAttrib,
+	//	dummy.get_attrib(ShaderAttrib::get_class_type()));
+
+	//// Our image has 32x32 tiles
+	//LVecBase3i work_groups(512 / 16, 512 / 16, 1);
+
+	//// Dispatch the compute shader, right now!
+	//GraphicsEngine *engine = GraphicsEngine::get_global_ptr();
+	//engine->dispatch_compute(work_groups, sattr, mainWindow->get_graphics_window()->get_gsg());
+	
+	
+	//gridTextureArray[std::get<0>(params)] = cache[std::get<1>(params)]->make_copy();
+
+	//std::cout << "copy from: " << std::get<0>(std::get<1>(params)) << " " << std::get<1>(std::get<1>(params)) << " " << std::get<2>(std::get<1>(params)) << " to index: " << std::get<0>(params)  << "\n";
+
+	gridTextureArray[std::get<0>(params)] = cache[std::get<1>(params)];
+
+	switch (std::get<0>(params))
+	{
+	case 0:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[0];
+		mainQuad01.set_texture(gridTextureArray[0], 1);
+		break;
+	}
+	case 1:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[1];
+		mainQuad02.set_texture(gridTextureArray[1], 1);
+		break;
+	}
+	case 2:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[2];
+		mainQuad03.set_texture(gridTextureArray[2], 1);
+		break;
+	}
+	case 3:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[3];
+		mainQuad04.set_texture(gridTextureArray[3], 1);
+		break;
+	}
+	case 4:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[4];
+		mainQuad05.set_texture(gridTextureArray[4], 1);
+		break;
+	}
+	case 5:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[5];
+		mainQuad06.set_texture(gridTextureArray[5], 1);
+		break;
+	}
+	case 6:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[6];
+		mainQuad07.set_texture(gridTextureArray[6], 1);
+		break;
+	}
+	case 7:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[7];
+		mainQuad08.set_texture(gridTextureArray[7], 1);
+		break;
+	}
+	case 8:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[8];
+		mainQuad09.set_texture(gridTextureArray[8], 1);
+		break;
+	}
+	case 9:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[9];
+		mainQuad10.set_texture(gridTextureArray[9], 1);
+		break;
+	}
+	case 10:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[10];
+		mainQuad11.set_texture(gridTextureArray[10], 1);
+		break;
+	}
+	case 11:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[11];
+		mainQuad12.set_texture(gridTextureArray[11], 1);
+		break;
+	}
+	case 12:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[12];
+		mainQuad13.set_texture(gridTextureArray[12], 1);
+
+		break;
+	}
+	case 13:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[13];
+		mainQuad14.set_texture(gridTextureArray[13], 1);
+
+		break;
+	}
+	case 14:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[14];
+		mainQuad15.set_texture(gridTextureArray[14], 1);
+		break;
+	}
+	case 15:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[15];
+		mainQuad16.set_texture(gridTextureArray[15], 1);
+		break;
+	}
+	case 16:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[16];
+		mainQuad17.set_texture(gridTextureArray[16], 1);
+		break;
+	}
+	case 17:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[17];
+		mainQuad18.set_texture(gridTextureArray[17], 1);
+		break;
+	}
+	case 18:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[18];
+		mainQuad19.set_texture(gridTextureArray[18], 1);
+		break;
+	}
+	case 19:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[19];
+		mainQuad20.set_texture(gridTextureArray[19], 1);
+		break;
+	}
+	case 20:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[20];
+		mainQuad21.set_texture(gridTextureArray[20], 1);
+		break;
+	}
+	case 21:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[21];
+		mainQuad22.set_texture(gridTextureArray[21], 1);
+		break;
+	}
+	case 22:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[22];
+		mainQuad23.set_texture(gridTextureArray[22], 1);
+		break;
+	}
+	case 23:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[23];
+		mainQuad24.set_texture(gridTextureArray[23], 1);
+		break;
+	}
+	case 24:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[24];
+		mainQuad25.set_texture(gridTextureArray[24], 1);
+		break;
+	}
+	case 25:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[25];
+		mainQuad26.set_texture(gridTextureArray[25], 1);
+		break;
+	}
+	case 26:
+	{
+		KeyTriple key = std::get<1>(params);
+		gridFrustrum[key] = gridTextureArray[26];
+		mainQuad27.set_texture(gridTextureArray[26], 1);
+		break;
+	}
+
+	}
 }
 
 //Dot rasterizer spinning
@@ -1320,6 +1479,14 @@ void initGridFrustrum()
 
 		_alltasks[i] = _taskArgs;
 	}
+
+	//array to use them as parametes in parallel tasks
+	for (int i = 0; i < 27; i++)
+	{
+		CopyArgs * _copyArgs = new CopyArgs();
+
+		_copytasks[i] = _copyArgs;
+	}
 }
 
 //void refreshGridFrustrum()
@@ -1469,7 +1636,7 @@ void refreshGridFrustrum()
 	else
 	{
 		refresharray.push_back(std::make_tuple(11, GRID_x + 1, GRID_y - 1, GRID_z + 0));
-	}
+	}*/
 
 	if (cache.count(key13) == 1)
 	{
@@ -1480,7 +1647,7 @@ void refreshGridFrustrum()
 		refresharray.push_back(std::make_tuple(12, GRID_x - 1, GRID_y + 0, GRID_z + 0));
 	}
 
-	if (cache.count(key14) == 1)
+	/*if (cache.count(key14) == 1)
 	{
 		copyarray.push_back(std::make_tuple(13, key14));
 	}
@@ -1489,6 +1656,7 @@ void refreshGridFrustrum()
 		refresharray.push_back(std::make_tuple(13, GRID_x + 0, GRID_y + 0, GRID_z + 0));
 	}
 
+	
 	if (cache.count(key15) == 1)
 	{
 		copyarray.push_back(std::make_tuple(14, key15));
@@ -1604,50 +1772,51 @@ void refreshGridFrustrum()
 	else
 	{
 		refresharray.push_back(std::make_tuple(26, GRID_x + 1, GRID_y + 1, GRID_z + 1));
-	}*/
+	}
+*/
+	////-----------debugging just refreshing everything----------------------
+	//refresharray.push_back(std::make_tuple(0, GRID_x - 1, GRID_y - 1, GRID_z - 1));
+	//refresharray.push_back(std::make_tuple(1, GRID_x + 0, GRID_y - 1, GRID_z - 1));
+	//refresharray.push_back(std::make_tuple(2, GRID_x + 1, GRID_y - 1, GRID_z - 1));
 
-	refresharray.push_back(std::make_tuple(0, GRID_x - 1, GRID_y - 1, GRID_z - 1));
-	refresharray.push_back(std::make_tuple(1, GRID_x + 0, GRID_y - 1, GRID_z - 1));
-	refresharray.push_back(std::make_tuple(2, GRID_x + 1, GRID_y - 1, GRID_z - 1));
+	//refresharray.push_back(std::make_tuple(3, GRID_x - 1, GRID_y, GRID_z - 1));
+	//refresharray.push_back(std::make_tuple(4, GRID_x + 0, GRID_y, GRID_z - 1));
+	//refresharray.push_back(std::make_tuple(5, GRID_x + 1, GRID_y, GRID_z - 1));
 
-	refresharray.push_back(std::make_tuple(3, GRID_x - 1, GRID_y, GRID_z - 1));
-	refresharray.push_back(std::make_tuple(4, GRID_x + 0, GRID_y, GRID_z - 1));
-	refresharray.push_back(std::make_tuple(5, GRID_x + 1, GRID_y, GRID_z - 1));
+	//refresharray.push_back(std::make_tuple(6, GRID_x - 1, GRID_y + 1, GRID_z - 1));
+	//refresharray.push_back(std::make_tuple(7, GRID_x + 0, GRID_y + 1, GRID_z - 1));
+	//refresharray.push_back(std::make_tuple(8, GRID_x + 1, GRID_y + 1, GRID_z - 1));
 
-	refresharray.push_back(std::make_tuple(6, GRID_x - 1, GRID_y + 1, GRID_z - 1));
-	refresharray.push_back(std::make_tuple(7, GRID_x + 0, GRID_y + 1, GRID_z - 1));
-	refresharray.push_back(std::make_tuple(8, GRID_x + 1, GRID_y + 1, GRID_z - 1));
+	//refresharray.push_back(std::make_tuple(9, GRID_x - 1, GRID_y - 1, GRID_z));
+	//refresharray.push_back(std::make_tuple(10, GRID_x + 0, GRID_y - 1, GRID_z));
+	//refresharray.push_back(std::make_tuple(11, GRID_x + 1, GRID_y - 1, GRID_z));
 
-	refresharray.push_back(std::make_tuple(9, GRID_x - 1, GRID_y - 1, GRID_z));
-	refresharray.push_back(std::make_tuple(10, GRID_x + 0, GRID_y - 1, GRID_z));
-	refresharray.push_back(std::make_tuple(11, GRID_x + 1, GRID_y - 1, GRID_z));
+	//refresharray.push_back(std::make_tuple(12, GRID_x - 1, GRID_y, GRID_z));
+	////refresharray.push_back(std::make_tuple(13, GRID_x, GRID_y, GRID_z)); //Dont refresh center, just copy it from near grids
+	//refresharray.push_back(std::make_tuple(14, GRID_x + 1, GRID_y, GRID_z));
 
-	refresharray.push_back(std::make_tuple(12, GRID_x - 1, GRID_y, GRID_z));
-	refresharray.push_back(std::make_tuple(13, GRID_x + 0, GRID_y, GRID_z));
-	refresharray.push_back(std::make_tuple(14, GRID_x + 1, GRID_y, GRID_z));
+	//refresharray.push_back(std::make_tuple(15, GRID_x - 1, GRID_y + 1, GRID_z));
+	//refresharray.push_back(std::make_tuple(16, GRID_x + 0, GRID_y + 1, GRID_z));
+	//refresharray.push_back(std::make_tuple(17, GRID_x + 1, GRID_y + 1, GRID_z));
 
-	refresharray.push_back(std::make_tuple(15, GRID_x - 1, GRID_y + 1, GRID_z));
-	refresharray.push_back(std::make_tuple(16, GRID_x + 0, GRID_y + 1, GRID_z));
-	refresharray.push_back(std::make_tuple(17, GRID_x + 1, GRID_y + 1, GRID_z));
+	//refresharray.push_back(std::make_tuple(18, GRID_x - 1, GRID_y - 1, GRID_z + 1));
+	//refresharray.push_back(std::make_tuple(19, GRID_x + 0, GRID_y - 1, GRID_z + 1));
+	//refresharray.push_back(std::make_tuple(20, GRID_x + 1, GRID_y - 1, GRID_z + 1));
 
-	refresharray.push_back(std::make_tuple(18, GRID_x - 1, GRID_y - 1, GRID_z + 1));
-	refresharray.push_back(std::make_tuple(19, GRID_x + 0, GRID_y - 1, GRID_z + 1));
-	refresharray.push_back(std::make_tuple(20, GRID_x + 1, GRID_y - 1, GRID_z + 1));
+	//refresharray.push_back(std::make_tuple(21, GRID_x - 1, GRID_y, GRID_z + 1));
+	//refresharray.push_back(std::make_tuple(22, GRID_x + 0, GRID_y, GRID_z + 1));
+	//refresharray.push_back(std::make_tuple(23, GRID_x + 1, GRID_y, GRID_z + 1));
 
-	refresharray.push_back(std::make_tuple(21, GRID_x - 1, GRID_y, GRID_z + 1));
-	refresharray.push_back(std::make_tuple(22, GRID_x + 0, GRID_y, GRID_z + 1));
-	refresharray.push_back(std::make_tuple(23, GRID_x + 1, GRID_y, GRID_z + 1));
-
-	refresharray.push_back(std::make_tuple(24, GRID_x - 1, GRID_y + 1, GRID_z + 1));
-	refresharray.push_back(std::make_tuple(25, GRID_x + 0, GRID_y + 1, GRID_z + 1));
-	refresharray.push_back(std::make_tuple(26, GRID_x + 1, GRID_y + 1, GRID_z + 1));
+	//refresharray.push_back(std::make_tuple(24, GRID_x - 1, GRID_y + 1, GRID_z + 1));
+	//refresharray.push_back(std::make_tuple(25, GRID_x + 0, GRID_y + 1, GRID_z + 1));
+	//refresharray.push_back(std::make_tuple(26, GRID_x + 1, GRID_y + 1, GRID_z + 1));
 
 
 	for (int i = 0; i < copyarray.size(); i++)
 	{
 		CopyTuple copy = copyarray.at(i);
-		//CopyTexture(cache[std::get<1>(copy)], gridTextureArray[std::get<0>(copy)]);
-		gridTextureArray[std::get<0>(copy)] = cache[std::get<1>(copy)]->make_copy();
+
+		CopyAndRefreshTexture(copy, cache);
 	}
 
 	for (int i = 0; i < refresharray.size(); i++)
@@ -1659,162 +1828,16 @@ void refreshGridFrustrum()
 		_alltasks[std::get<0>(refresh)]->gridy = std::get<2>(refresh);
 		_alltasks[std::get<0>(refresh)]->gridz = std::get<3>(refresh);
 
+		//CleanTexture(gridTextureArray[std::get<0>(refresh)]);
+		gridTextureArray[std::get<0>(refresh)]->set_clear_color((0.0, 0.0, 0.0, 0.0));
+		gridTextureArray[std::get<0>(refresh)]->clear_image();
+
 		GenericAsyncTask* refreshtask = new GenericAsyncTask("Refresh Grid", &renderParallelTextureTask, _alltasks[std::get<0>(refresh)]);
 		
 		refreshtask->set_task_chain("renderchain");
 
 		taskMgr->add(refreshtask);
 	}
-
-	/*gridFrustrum[key01] = gridTextureArray[0];
-	gridFrustrum[key02] = gridTextureArray[1];
-	gridFrustrum[key03] = gridTextureArray[2];
-	gridFrustrum[key04] = gridTextureArray[3];
-	gridFrustrum[key05] = gridTextureArray[4];
-	gridFrustrum[key06] = gridTextureArray[5];
-	gridFrustrum[key07] = gridTextureArray[6];
-	gridFrustrum[key08] = gridTextureArray[7];
-	gridFrustrum[key09] = gridTextureArray[8];
-	gridFrustrum[key10] = gridTextureArray[9];
-	gridFrustrum[key11] = gridTextureArray[10];
-	gridFrustrum[key12] = gridTextureArray[11];
-	gridFrustrum[key13] = gridTextureArray[12];
-	gridFrustrum[key14] = gridTextureArray[13];
-	gridFrustrum[key15] = gridTextureArray[14];
-	gridFrustrum[key16] = gridTextureArray[15];
-	gridFrustrum[key17] = gridTextureArray[16];
-	gridFrustrum[key18] = gridTextureArray[17];
-	gridFrustrum[key19] = gridTextureArray[18];
-	gridFrustrum[key20] = gridTextureArray[19];
-	gridFrustrum[key21] = gridTextureArray[20];
-	gridFrustrum[key22] = gridTextureArray[21];
-	gridFrustrum[key23] = gridTextureArray[22];
-	gridFrustrum[key24] = gridTextureArray[23];
-	gridFrustrum[key25] = gridTextureArray[24];
-	gridFrustrum[key26] = gridTextureArray[25];
-	gridFrustrum[key27] = gridTextureArray[26];
-
-	mainQuad01.set_texture(gridFrustrum[key01]);
-	mainQuad02.set_texture(gridFrustrum[key02]);
-	mainQuad03.set_texture(gridFrustrum[key03]);
-	mainQuad04.set_texture(gridFrustrum[key04]);
-	mainQuad05.set_texture(gridFrustrum[key05]);
-	mainQuad06.set_texture(gridFrustrum[key06]);
-	mainQuad07.set_texture(gridFrustrum[key07]);
-	mainQuad08.set_texture(gridFrustrum[key08]);
-	mainQuad09.set_texture(gridFrustrum[key09]);
-	mainQuad10.set_texture(gridFrustrum[key10]);
-	mainQuad11.set_texture(gridFrustrum[key11]);
-	mainQuad12.set_texture(gridFrustrum[key12]);
-	mainQuad13.set_texture(gridFrustrum[key13]);
-	mainQuad14.set_texture(gridFrustrum[key14]);
-	mainQuad15.set_texture(gridFrustrum[key15]);
-	mainQuad16.set_texture(gridFrustrum[key16]);
-	mainQuad17.set_texture(gridFrustrum[key17]);
-	mainQuad18.set_texture(gridFrustrum[key18]);
-	mainQuad19.set_texture(gridFrustrum[key19]);
-	mainQuad20.set_texture(gridFrustrum[key20]);
-	mainQuad21.set_texture(gridFrustrum[key21]);
-	mainQuad22.set_texture(gridFrustrum[key22]);
-	mainQuad23.set_texture(gridFrustrum[key23]);
-	mainQuad24.set_texture(gridFrustrum[key24]);
-	mainQuad25.set_texture(gridFrustrum[key25]);
-	mainQuad26.set_texture(gridFrustrum[key26]);
-	mainQuad27.set_texture(gridFrustrum[key27]);*/
-
-	//gridTextureArray[12] = gridTextureArray[3]->make_copy();
-	//mainQuad13.set_texture(gridTextureArray[12]);
-
-	/*
-	//---------------------If I regenerate textures, it works, but really slow
-	gridTextureArray[0] = Render3dTexture(GRID_x -1, GRID_y  -1, GRID_z  -1);
-	gridTextureArray[1] = Render3dTexture(GRID_x + 0, GRID_y -1, GRID_z  -1);
-	gridTextureArray[2] = Render3dTexture(GRID_x + 1, GRID_y  -1, GRID_z -1);
-	gridTextureArray[3] = Render3dTexture(GRID_x -1, GRID_y + 0, GRID_z -1);
-	gridTextureArray[4] = Render3dTexture(GRID_x + 0, GRID_y + 0, GRID_z -1);
-	gridTextureArray[5] = Render3dTexture(GRID_x + 1, GRID_y + 0, GRID_z -1);
-	gridTextureArray[6] = Render3dTexture(GRID_x -1, GRID_y + 1, GRID_z -1);
-	gridTextureArray[7] = Render3dTexture(GRID_x + 0, GRID_y + 1, GRID_z -1);
-	gridTextureArray[8] = Render3dTexture(GRID_x + 1, GRID_y + 1, GRID_z -1);
-
-	gridTextureArray[9] = Render3dTexture(GRID_x -1, GRID_y  -1, GRID_z + 0);
-	gridTextureArray[10] = Render3dTexture(GRID_x + 0, GRID_y  -1, GRID_z + 0);
-	gridTextureArray[11] = Render3dTexture(GRID_x + 1, GRID_y  -1, GRID_z + 0);
-	gridTextureArray[12] = Render3dTexture(GRID_x -1, GRID_y + 0, GRID_z + 0);
-	gridTextureArray[13] = Render3dTexture(GRID_x + 0, GRID_y + 0, GRID_z + 0);
-	gridTextureArray[14] = Render3dTexture(GRID_x + 1, GRID_y + 0, GRID_z + 0);
-	gridTextureArray[15] = Render3dTexture(GRID_x -1, GRID_y + 1, GRID_z + 0);
-	gridTextureArray[16] = Render3dTexture(GRID_x + 0, GRID_y + 1, GRID_z + 0);
-	gridTextureArray[17] = Render3dTexture(GRID_x + 1, GRID_y + 1, GRID_z + 0);
-
-	gridTextureArray[18] = Render3dTexture(GRID_x -1, GRID_y -1, GRID_z + 1);
-	gridTextureArray[19] = Render3dTexture(GRID_x + 0, GRID_y  -1, GRID_z + 1);
-	gridTextureArray[20] = Render3dTexture(GRID_x + 1, GRID_y  -1, GRID_z + 1);
-	gridTextureArray[21] = Render3dTexture(GRID_x -1, GRID_y + 0, GRID_z + 1);
-	gridTextureArray[22] = Render3dTexture(GRID_x + 0, GRID_y + 0, GRID_z + 1);
-	gridTextureArray[23] = Render3dTexture(GRID_x + 1, GRID_y + 0, GRID_z + 1);
-	gridTextureArray[24] = Render3dTexture(GRID_x -1, GRID_y + 1, GRID_z + 1);
-	gridTextureArray[25] = Render3dTexture(GRID_x + 0, GRID_y + 1, GRID_z + 1);
-	gridTextureArray[26] = Render3dTexture(GRID_x + 1, GRID_y + 1, GRID_z + 1);
-
-
-	gridFrustrum[key01] = gridTextureArray[0];
-	gridFrustrum[key02] = gridTextureArray[1];
-	gridFrustrum[key03] = gridTextureArray[2];
-	gridFrustrum[key04] = gridTextureArray[3];
-	gridFrustrum[key05] = gridTextureArray[4];
-	gridFrustrum[key06] = gridTextureArray[5];
-	gridFrustrum[key07] = gridTextureArray[6];
-	gridFrustrum[key08] = gridTextureArray[7];
-	gridFrustrum[key09] = gridTextureArray[8];
-	gridFrustrum[key10] = gridTextureArray[9];
-	gridFrustrum[key11] = gridTextureArray[10];
-	gridFrustrum[key12] = gridTextureArray[11];
-	gridFrustrum[key13] = gridTextureArray[12];
-	gridFrustrum[key14] = gridTextureArray[13];
-	gridFrustrum[key15] = gridTextureArray[14];
-	gridFrustrum[key16] = gridTextureArray[15];
-	gridFrustrum[key17] = gridTextureArray[16];
-	gridFrustrum[key18] = gridTextureArray[17];
-	gridFrustrum[key19] = gridTextureArray[18];
-	gridFrustrum[key20] = gridTextureArray[19];
-	gridFrustrum[key21] = gridTextureArray[20];
-	gridFrustrum[key22] = gridTextureArray[21];
-	gridFrustrum[key23] = gridTextureArray[22];
-	gridFrustrum[key24] = gridTextureArray[23];
-	gridFrustrum[key25] = gridTextureArray[24];
-	gridFrustrum[key26] = gridTextureArray[25];
-	gridFrustrum[key27] = gridTextureArray[26];
-
-	mainQuad01.set_texture(gridFrustrum[key01]);
-	mainQuad02.set_texture(gridFrustrum[key02]);
-	mainQuad03.set_texture(gridFrustrum[key03]);
-	mainQuad04.set_texture(gridFrustrum[key04]);
-	mainQuad05.set_texture(gridFrustrum[key05]);
-	mainQuad06.set_texture(gridFrustrum[key06]);
-	mainQuad07.set_texture(gridFrustrum[key07]);
-	mainQuad08.set_texture(gridFrustrum[key08]);
-	mainQuad09.set_texture(gridFrustrum[key09]);
-	mainQuad10.set_texture(gridFrustrum[key10]);
-	mainQuad11.set_texture(gridFrustrum[key11]);
-	mainQuad12.set_texture(gridFrustrum[key12]);
-	mainQuad13.set_texture(gridFrustrum[key13]);
-	mainQuad14.set_texture(gridFrustrum[key14]);
-	mainQuad15.set_texture(gridFrustrum[key15]);
-	mainQuad16.set_texture(gridFrustrum[key16]);
-	mainQuad17.set_texture(gridFrustrum[key17]);
-	mainQuad18.set_texture(gridFrustrum[key18]);
-	mainQuad19.set_texture(gridFrustrum[key19]);
-	mainQuad20.set_texture(gridFrustrum[key20]);
-	mainQuad21.set_texture(gridFrustrum[key21]);
-	mainQuad22.set_texture(gridFrustrum[key22]);
-	mainQuad23.set_texture(gridFrustrum[key23]);
-	mainQuad24.set_texture(gridFrustrum[key24]);
-	mainQuad25.set_texture(gridFrustrum[key25]);
-	mainQuad26.set_texture(gridFrustrum[key26]);
-	mainQuad27.set_texture(gridFrustrum[key27]);
-	//---------------------If I regenerate textures, it works, but really slow
-	*/
 
 }
 
@@ -1826,16 +1849,53 @@ void CopyTexture(PT(Texture) origin, PT(Texture) destination)
 	//CPTA_uchar imageorg = origin->get_ram_image();
 	PTA_uchar imageorg = origin->modify_ram_image();
 
+	memcpy(image.p(), imageorg.p(), textsize);
+
+	//int z = 0;
+	//int y = 127;
+	//int x = 0;
+
+	//for (int i = 0; i < textsize; i += 4)
+	//{
+	//	image[i] = imageorg[i];  // BLUE COLOR
+	//	image[i + 1] = imageorg[i + 1]; // GREEN COLOR
+	//	image[i + 2] = imageorg[i + 2]; // RED COLOR
+	//	image[i + 3] = imageorg[i + 3]; // ALPHA
+
+	//	x++;
+
+	//	if (x == TEXTURESIZE)
+	//	{
+	//		x = 0;
+	//		y--;
+
+	//		if (y == -1)
+	//		{
+	//			y = 127;
+	//			z++;
+	//		}
+	//	}
+	//}
+
+	destination->reload();
+}
+
+void CleanTexture(PT(Texture) origin)
+{
+	int textsize = TEXTURESIZE * TEXTURESIZE * TEXTURESIZE * 4;
+
+	PTA_uchar imageorg = origin->modify_ram_image();
+
 	int z = 0;
 	int y = 127;
 	int x = 0;
 
 	for (int i = 0; i < textsize; i += 4)
 	{
-		image[i] = imageorg[i];  // BLUE COLOR
-		image[i + 1] = imageorg[i + 1]; // GREEN COLOR
-		image[i + 2] = imageorg[i + 2]; // RED COLOR
-		image[i + 3] = imageorg[i + 3]; // ALPHA
+		imageorg[i] = 0;  // BLUE COLOR
+		imageorg[i + 1] = 0; // GREEN COLOR
+		imageorg[i + 2] = 0; // RED COLOR
+		imageorg[i + 3] = 255; // ALPHA
 
 		x++;
 
@@ -1852,7 +1912,7 @@ void CopyTexture(PT(Texture) origin, PT(Texture) destination)
 		}
 	}
 
-	destination->reload();
+	origin->reload();
 }
 
 int main(int argc, char *argv[]) {
@@ -2378,7 +2438,6 @@ void MakeShadertoy(int argc, char *argv[])
 
 	bunn = Render3dTexture(0, 0, 0);//dummy bunny for testing
 
-	
 
 	std::cout << "max textures: " << window->get_graphics_output()->get_gsg()->get_max_texture_stages() << "\n";
 
@@ -2387,6 +2446,10 @@ void MakeShadertoy(int argc, char *argv[])
 	// Apply scale and position transforms to the model.
 	envscene.set_scale(0.25f, 0.25f, 0.25f);
 	envscene.set_pos(-8, 42, 0);
+
+	//generate compute shader
+	//copyTextureShader = Shader::load_compute(Shader::ShaderLanguage::SL_GLSL, "shaders/copytexture.glsl");
+
 
 	GenerateTextureBuffer(width, height, window, envscene);
 
