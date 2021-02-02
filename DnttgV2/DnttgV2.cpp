@@ -33,7 +33,7 @@
 #define HEIGHT 200
 #define BUNNY 1
 #define BOUNDINGBOX 1
-#define TEXTURESIZE 128
+#define TEXTURESIZE 64
 
 using std::chrono::duration;
 using std::chrono::duration_cast;
@@ -711,14 +711,14 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 	mainQuad24.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 , 0.0 , -1.0 ));
 	mainQuad24.set_shader_input("target", lookAtDirection - LVector3f(-1.0 , 0.0 , -1.0 ));
 
-	mainQuad25.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 , 1.0 , -1.0 ));
-	mainQuad25.set_shader_input("target", lookAtDirection - LVector3f(1.0 , 1.0 , -1.0 ));
+	mainQuad25.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 , -1.0 , -1.0 ));
+	mainQuad25.set_shader_input("target", lookAtDirection - LVector3f(1.0 , -1.0 , -1.0 ));
 
-	mainQuad26.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 , 1.0 , -1.0 ));
-	mainQuad26.set_shader_input("target", lookAtDirection - LVector3f(0.0 , 1.0 , -1.0 ));
+	mainQuad26.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 , -1.0 , -1.0 ));
+	mainQuad26.set_shader_input("target", lookAtDirection - LVector3f(0.0 , -1.0 , -1.0 ));
 
-	mainQuad27.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 , 1.0 , -1.0 ));
-	mainQuad27.set_shader_input("target", lookAtDirection - LVector3f(-1.0 , 1.0 , -1.0 ));
+	mainQuad27.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 , -1.0 , -1.0 ));
+	mainQuad27.set_shader_input("target", lookAtDirection - LVector3f(-1.0 , -1.0 , -1.0 ));
 
 	/*
 	if (-floor(CAM_x + 0.5) != GRID_x ||
@@ -990,9 +990,6 @@ void CopyAndRefreshTexture(CopyTuple params, GridFrustrum cache)
 	//GraphicsEngine *engine = GraphicsEngine::get_global_ptr();
 	//engine->dispatch_compute(work_groups, sattr, mainWindow->get_graphics_window()->get_gsg());
 	
-	
-	//gridTextureArray[std::get<0>(params)] = cache[std::get<1>(params)]->make_copy();
-
 	//std::cout << "copy from: " << std::get<0>(std::get<1>(params)) << " " << std::get<1>(std::get<1>(params)) << " " << std::get<2>(std::get<1>(params)) << " to index: " << std::get<0>(params)  << "\n";
 
 	gridTextureArray[std::get<0>(params)] = cache[std::get<1>(params)];
@@ -1530,7 +1527,7 @@ void refreshGridFrustrum()
 
 	std::vector<CopyTuple> copyarray;
 	
-	/*if (cache.count(key01) == 1)
+	if (cache.count(key01) == 1)
 	{
 		copyarray.push_back(std::make_tuple(0, key01));
 	}
@@ -1636,7 +1633,7 @@ void refreshGridFrustrum()
 	else
 	{
 		refresharray.push_back(std::make_tuple(11, GRID_x + 1, GRID_y - 1, GRID_z + 0));
-	}*/
+	}
 
 	if (cache.count(key13) == 1)
 	{
@@ -1647,7 +1644,7 @@ void refreshGridFrustrum()
 		refresharray.push_back(std::make_tuple(12, GRID_x - 1, GRID_y + 0, GRID_z + 0));
 	}
 
-	/*if (cache.count(key14) == 1)
+	if (cache.count(key14) == 1)
 	{
 		copyarray.push_back(std::make_tuple(13, key14));
 	}
@@ -1773,7 +1770,7 @@ void refreshGridFrustrum()
 	{
 		refresharray.push_back(std::make_tuple(26, GRID_x + 1, GRID_y + 1, GRID_z + 1));
 	}
-*/
+
 	////-----------debugging just refreshing everything----------------------
 	//refresharray.push_back(std::make_tuple(0, GRID_x - 1, GRID_y - 1, GRID_z - 1));
 	//refresharray.push_back(std::make_tuple(1, GRID_x + 0, GRID_y - 1, GRID_z - 1));
@@ -1792,7 +1789,7 @@ void refreshGridFrustrum()
 	//refresharray.push_back(std::make_tuple(11, GRID_x + 1, GRID_y - 1, GRID_z));
 
 	//refresharray.push_back(std::make_tuple(12, GRID_x - 1, GRID_y, GRID_z));
-	////refresharray.push_back(std::make_tuple(13, GRID_x, GRID_y, GRID_z)); //Dont refresh center, just copy it from near grids
+	//refresharray.push_back(std::make_tuple(13, GRID_x, GRID_y, GRID_z)); //Dont refresh center, just copy it from near grids
 	//refresharray.push_back(std::make_tuple(14, GRID_x + 1, GRID_y, GRID_z));
 
 	//refresharray.push_back(std::make_tuple(15, GRID_x - 1, GRID_y + 1, GRID_z));
@@ -1829,8 +1826,8 @@ void refreshGridFrustrum()
 		_alltasks[std::get<0>(refresh)]->gridz = std::get<3>(refresh);
 
 		//CleanTexture(gridTextureArray[std::get<0>(refresh)]);
-		gridTextureArray[std::get<0>(refresh)]->set_clear_color((0.0, 0.0, 0.0, 0.0));
-		gridTextureArray[std::get<0>(refresh)]->clear_image();
+		//gridTextureArray[std::get<0>(refresh)]->set_clear_color((0.0, 0.0, 0.0, 0.0));
+		//gridTextureArray[std::get<0>(refresh)]->clear_image();
 
 		GenericAsyncTask* refreshtask = new GenericAsyncTask("Refresh Grid", &renderParallelTextureTask, _alltasks[std::get<0>(refresh)]);
 		
