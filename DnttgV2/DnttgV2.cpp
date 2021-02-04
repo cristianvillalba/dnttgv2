@@ -132,8 +132,6 @@ bool* pREFRESHGRID = &REFRESHGRID;
 //Chain to parallel refreshing
 AsyncTaskChain * renderChain;
 
-std::vector<RefreshTuple> refresharray;
-
 struct TaskArgs{
 	int index;
 	int gridx;
@@ -1526,7 +1524,9 @@ void refreshGridFrustrum()
 	gridFrustrum.clear();
 
 	std::vector<CopyTuple> copyarray;
-	
+
+	std::vector<RefreshTuple> refresharray;
+		
 	if (cache.count(key01) == 1)
 	{
 		copyarray.push_back(std::make_tuple(0, key01));
