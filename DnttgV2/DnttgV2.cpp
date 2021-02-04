@@ -33,7 +33,7 @@
 #define HEIGHT 200
 #define BUNNY 1
 #define BOUNDINGBOX 1
-#define TEXTURESIZE 64
+#define TEXTURESIZE 32
 
 using std::chrono::duration;
 using std::chrono::duration_cast;
@@ -303,8 +303,9 @@ AsyncTask::DoneStatus modifyGrid(GenericAsyncTask *task, void *data)
 {
 	if (SPAWN)
 	{
-		LVector3f fw = mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, -1.0));
-		fw *= 1000;
+		//LVector3f fw = mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, -0.10));
+		LVector3f fw = mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, -0.1));
+		fw *= -1000;
 
 		//std::cout << "spawn at x: " << fw.get_x() << "spawn at y: " << fw.get_y() << "spawn at z: " << fw.get_z() << "\n";
 
@@ -313,6 +314,12 @@ AsyncTask::DoneStatus modifyGrid(GenericAsyncTask *task, void *data)
 		//refresh3dTexture();
 		
 		refresh3dTexture(gridTextureArray[13], GRID_x, GRID_y, GRID_z);//only refresh center
+		//gridTextureArray[13] = Render3dTexture(GRID_x, GRID_y, GRID_z);
+
+		//KeyTriple key = std::make_tuple(GRID_x, GRID_y, GRID_z);
+		//gridFrustrum[key] = gridTextureArray[13];
+
+		//refreshGridFrustrum();
 
 		SPAWN = false;
 	}
@@ -365,7 +372,7 @@ PT(Texture) Render3dTexture(int gridx, int gridy, int gridz)
 
 				//translate(500.0, 0, 0, &x, &y, &z);
 				//float data = grid->getValue(x, y, z);
-				float data = grid->getValue(x + gridx * 1000,  y + gridy * 1000, z + gridz * 1000);
+				float data = grid->getValue(x - gridx * 1000,  y - gridy * 1000, z - gridz * 1000);
 	
 				if (data > 0 )
 				{

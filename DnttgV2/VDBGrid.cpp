@@ -191,7 +191,7 @@ int VDBGrid::initGrid()
 
 
 	//for debug purposes
-	spawnSphere(LVector3f(-1000, 0, -1000)); //axis are inverted  looks like 1000 is middle
+	spawnSphere(LVector3f(1000, 0, 1500)); //axis are inverted  looks like 1000 is middle
 	//spawnSphere(LVector3f(-500, 0, 500)); //axis are inverted  looks like 1000 is middle
 
 	return 0;
@@ -232,7 +232,7 @@ float VDBGrid::getValue(float x, float y, float z)
 	//return (float)indexValue;
 }
 
-void VDBGrid::spawnSphere(LVector3f pos)
+void VDBGrid::spawnSphere(LVector3f pos) //Axis are inverted!
 {
 	openvdb::tools::changeBackground(grid->tree(), 1.5);
 
