@@ -304,11 +304,15 @@ AsyncTask::DoneStatus modifyGrid(GenericAsyncTask *task, void *data)
 	if (SPAWN)
 	{
 		//LVector3f fw = mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, -0.10));
-		LVector3f fw = mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, -0.1));
+		LVector3f fw = mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, 0));
 		fw *= -1000;
+		fw.add_x(GRID_x * 1000);
+		fw.add_y(GRID_y * 1000);
+		fw.add_z(GRID_z * 1000);
 
-		//std::cout << "spawn at x: " << fw.get_x() << "spawn at y: " << fw.get_y() << "spawn at z: " << fw.get_z() << "\n";
+		std::cout << "spawn at x: " << fw.get_x() << "spawn at y: " << fw.get_y() << "spawn at z: " << fw.get_z() << "\n";
 
+		fw *= -1; //invert coordinates to spawn
 		grid->spawnSphere(fw);
 
 		//refresh3dTexture();
@@ -486,7 +490,7 @@ void refresh3dTexture(PT(Texture) texture, int gridx, int gridy, int gridz)
 
 		//rotatey(angledegrees, &x0, &y0, &z0);
 		//float data = grid->getValue(x0, y0, z0);
-		float data = grid->getValue(x0 + gridx * 1000, y0 + gridy * 1000, z0 + gridz * 1000);
+		float data = grid->getValue(x0 - gridx * 1000, y0 - gridy * 1000, z0 - gridz * 1000);
 
 		if (data > 0)
 		{
