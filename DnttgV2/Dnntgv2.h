@@ -15,6 +15,13 @@ typedef std::map<KeyTriple, PT(Texture)> GridFrustrum;
 typedef std::tuple<int, KeyTriple> CopyTuple;
 typedef std::tuple<int, int, int, int> RefreshTuple;
 
+//structure to z depth ordering
+struct Zorder {
+	LVector3f pos;
+	NodePath quad;
+	int index;
+};
+
 void MakeBunny(int argc, char *argv[]);
 void MakeShadertoy(int argc, char *argv[]);
 void print_results(const char *const tag,
@@ -56,6 +63,8 @@ void InitShader(int index, NodePath node);
 void CopyTexture(PT(Texture) origin, PT(Texture) destination);
 void CopyAndRefreshTexture(CopyTuple params, GridFrustrum cache);
 void CleanTexture(PT(Texture) origin);
+void ZOrdering();
+bool CompareZPos(Zorder n1, Zorder n2);
 
 
 

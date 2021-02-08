@@ -132,6 +132,7 @@ bool* pREFRESHGRID = &REFRESHGRID;
 //Chain to parallel refreshing
 AsyncTaskChain * renderChain;
 
+//---Support structures
 struct TaskArgs{
 	int index;
 	int gridx;
@@ -148,7 +149,7 @@ struct CopyArgs {
 TaskArgs* _alltasks[27];
 CopyArgs* _copytasks[27];
 
-//PT(Shader) copyTextureShader;
+//---Support structures
 
 
 void print_results(const char *const tag,
@@ -644,6 +645,8 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 	camera.set_pos(CAM_x, CAM_y,  CAM_z);
 	camera.set_hpr(0, 0, ANGLEDEGREES);
 
+	ZOrdering();
+
 	LVector3f lookAtDirection = mainWindow->get_render().get_relative_point(camera, LVector3f(0,0,1));
 
 	mainQuad01.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 , 1.0 , 1.0 ));
@@ -978,6 +981,231 @@ AsyncTask::DoneStatus renderParallelTextureTask(GenericAsyncTask *task, void *da
 
 	}
 	return AsyncTask::DS_done;
+}
+
+bool CompareZPos(Zorder n1, Zorder n2)
+{
+	LVector3f n1distance = LVector3f(CAM_x, CAM_y, CAM_z) - n1.pos;
+	LVector3f n2distance = LVector3f(CAM_x, CAM_y, CAM_z) - n2.pos;
+	bool log = false;
+
+	if (n1distance.length() < n2distance.length()) {
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+void ZOrdering()
+{
+	std::vector<Zorder> zorder;
+	
+	Zorder data01;
+	Zorder data02;
+	Zorder data03;
+	Zorder data04;
+	Zorder data05;
+	Zorder data06;
+	Zorder data07;
+	Zorder data08;
+	Zorder data09;
+	Zorder data10;
+	Zorder data11;
+	Zorder data12;
+	Zorder data13;
+	//Zorder data14; //this will always be the last quad to render since it the center
+	Zorder data15;
+	Zorder data16;
+	Zorder data17;
+	Zorder data18;
+	Zorder data19;
+	Zorder data20;
+	Zorder data21;
+	Zorder data22;
+	Zorder data23;
+	Zorder data24;
+	Zorder data25;
+	Zorder data26;
+	Zorder data27;
+
+	LVector3f key01 = LVector3f(-1000, -1000, -1000);
+	LVector3f key02 = LVector3f(0, -1000, -1000);
+	LVector3f key03 = LVector3f(1000, -1000, -1000);
+	LVector3f key04 = LVector3f(-1000, 0, -1000);
+	LVector3f key05 = LVector3f(0, 0, -1000);
+	LVector3f key06 = LVector3f(1000, 0, -1000);
+	LVector3f key07 = LVector3f(-1000, 1000, -1000);
+	LVector3f key08 = LVector3f(0, 1000, -1000);
+	LVector3f key09 = LVector3f(1000, 1000, -1000);
+	LVector3f key10 = LVector3f(-1000, -1000, 0);
+	LVector3f key11 = LVector3f(0, -1000, 0);
+	LVector3f key12 = LVector3f(1000, -1000, 0);
+	LVector3f key13 = LVector3f(-1000, 0, 0);
+	//LVector3f key14 = LVector3f(0, 0, 0); //this will always be the last quad to render since it the center
+	LVector3f key15 = LVector3f(1000, 0, 0);
+	LVector3f key16 = LVector3f(-1000, 1000, 0);
+	LVector3f key17 = LVector3f(0, 1000, 0);
+	LVector3f key18 = LVector3f(1000, 1000, 0);
+	LVector3f key19 = LVector3f(-1000, -1000, 1000);
+	LVector3f key20 = LVector3f(0, -1000, 1000);
+	LVector3f key21 = LVector3f(1000, -1000, 1000);
+	LVector3f key22 = LVector3f(-1000, 0, 1000);
+	LVector3f key23 = LVector3f(0, 0, 1000);
+	LVector3f key24 = LVector3f(1000, 0, 1000);
+	LVector3f key25 = LVector3f(-1000, 1000, 1000);
+	LVector3f key26 = LVector3f(0, 1000, 1000);
+	LVector3f key27 = LVector3f(1000, 1000, 1000);
+
+
+	data01.pos = key01;
+	data01.quad = mainQuad01;
+	data01.index = 0;
+
+	data02.pos = key02;
+	data02.quad = mainQuad02;
+	data02.index = 1;
+
+	data03.pos = key03;
+	data03.quad = mainQuad03;
+	data03.index = 2;
+
+	data04.pos = key04;
+	data04.quad = mainQuad04;
+	data04.index = 3;
+
+	data05.pos = key05;
+	data05.quad = mainQuad05;
+	data05.index = 4;
+
+	data06.pos = key06;
+	data06.quad = mainQuad06;
+	data06.index = 5;
+
+	data07.pos = key07;
+	data07.quad = mainQuad07;
+	data07.index = 6;
+
+	data08.pos = key08;
+	data08.quad = mainQuad08;
+	data08.index = 7;
+
+	data09.pos = key09;
+	data09.quad = mainQuad09;
+	data09.index = 8;
+
+	data10.pos = key10;
+	data10.quad = mainQuad10;
+	data10.index = 9;
+
+	data11.pos = key11;
+	data11.quad = mainQuad11;
+	data11.index = 10;
+
+	data12.pos = key12;
+	data12.quad = mainQuad12;
+	data12.index = 11;
+
+	data13.pos = key13;
+	data13.quad = mainQuad13;
+	data13.index = 12;
+
+	////this will always be the last quad to render since it the center
+	//data14.pos = key14;
+	//data14.quad = mainQuad14;
+	//data14.index = 13;
+	////this will always be the last quad to render since it the center
+
+	data15.pos = key15;
+	data15.quad = mainQuad15;
+	data15.index = 14;
+
+	data16.pos = key16;
+	data16.quad = mainQuad16;
+	data16.index = 15;
+
+	data17.pos = key17;
+	data17.quad = mainQuad17;
+	data17.index = 16;
+
+	data18.pos = key18;
+	data18.quad = mainQuad18;
+	data18.index = 17;
+
+	data19.pos = key19;
+	data19.quad = mainQuad19;
+	data19.index = 18;
+
+	data20.pos = key20;
+	data20.quad = mainQuad20;
+	data20.index = 19;
+
+	data21.pos = key21;
+	data21.quad = mainQuad21;
+	data21.index = 20;
+
+	data22.pos = key22;
+	data22.quad = mainQuad22;
+	data22.index = 21;
+
+	data23.pos = key23;
+	data23.quad = mainQuad23;
+	data23.index = 22;
+
+	data24.pos = key24;
+	data24.quad = mainQuad24;
+	data24.index = 23;
+
+	data25.pos = key25;
+	data25.quad = mainQuad25;
+	data25.index = 24;
+
+	data26.pos = key26;
+	data26.quad = mainQuad26;
+	data26.index = 25;
+
+	data27.pos = key27;
+	data27.quad = mainQuad27;
+	data27.index = 26;
+
+	zorder.push_back(data01);
+	zorder.push_back(data02);
+	zorder.push_back(data03);
+	zorder.push_back(data04);
+	zorder.push_back(data05);
+	zorder.push_back(data06);
+	zorder.push_back(data07);
+	zorder.push_back(data08);
+	zorder.push_back(data09);
+	zorder.push_back(data10);
+	zorder.push_back(data11);
+	zorder.push_back(data12);
+	zorder.push_back(data13);
+	//zorder.push_back(data14); //this will always be the last quad to render since it the center
+	zorder.push_back(data15);
+	zorder.push_back(data16);
+	zorder.push_back(data17);
+	zorder.push_back(data18);
+	zorder.push_back(data19);
+	zorder.push_back(data20);
+	zorder.push_back(data21);
+	zorder.push_back(data22);
+	zorder.push_back(data23);
+	zorder.push_back(data24);
+	zorder.push_back(data25);
+	zorder.push_back(data26);
+	zorder.push_back(data27);
+
+	std::sort(zorder.begin(), zorder.end(), CompareZPos);
+
+	int i = 0;
+
+	for (std::vector<Zorder>::iterator it = zorder.begin(); it != zorder.end(); ++it) {
+		(*it).quad.set_bin("fixed", -i);
+		i++;
+	}
+		
 }
 
 void CopyAndRefreshTexture(CopyTuple params, GridFrustrum cache)
@@ -2164,110 +2392,137 @@ void InitShader(int index, NodePath nodePath)
 	{
 	case 1: {
 		mainQuad01 = nodePath;
+		nodePath.set_bin("fixed", 0);
 		break;
 	}
 	case 2: {
 		mainQuad02 = nodePath;
+		nodePath.set_bin("fixed", 0);
 		break;
 	}
 	case 3: {
 		mainQuad03 = nodePath;
+		nodePath.set_bin("fixed", 0);
 		break;
 	}
 	case 4: {
 		mainQuad04 = nodePath;
+		nodePath.set_bin("fixed", 0);
 		break;
 	}
 	case 5: {
 		mainQuad05 = nodePath;
+		nodePath.set_bin("fixed", 0);
 		break;
 	}
 	case 6: {
 		mainQuad06 = nodePath;
+		nodePath.set_bin("fixed", 0);
 		break;
 	}
 	case 7: {
 		mainQuad07 = nodePath;
+		nodePath.set_bin("fixed", 0);
 		break;
 	}
 	case 8: {
 		mainQuad08 = nodePath;
+		nodePath.set_bin("fixed", 0);
 		break;
 	}
 	case 9: {
 		mainQuad09 = nodePath;
+		nodePath.set_bin("fixed", 0);
 		break;
 	}
 	case 10: {
 		mainQuad10 = nodePath;
+		nodePath.set_bin("fixed", 1);
 		break;
 	}
 	case 11: {
 		mainQuad11 = nodePath;
+		nodePath.set_bin("fixed", 1);
 		break;
 	}
 	case 12: {
 		mainQuad12 = nodePath;
+		nodePath.set_bin("fixed", 1);
 		break;
 	}
 	case 13: {
 		mainQuad13 = nodePath;
+		nodePath.set_bin("fixed", 1);
 		break;
 	}
 	case 14: {
 		mainQuad14 = nodePath;
+		nodePath.set_bin("fixed", 100);
 		break;
 	}
 	case 15: {
 		mainQuad15 = nodePath;
+		nodePath.set_bin("fixed", 1);
 		break;
 	}
 	case 16: {
 		mainQuad16 = nodePath;
+		nodePath.set_bin("fixed", 1);
 		break;
 	}
 	case 17: {
 		mainQuad17 = nodePath;
+		nodePath.set_bin("fixed", 1);
 		break;
 	}
 	case 18: {
 		mainQuad18 = nodePath;
+		nodePath.set_bin("fixed", 1);
 		break;
 	}
 	case 19: {
 		mainQuad19 = nodePath;
+		nodePath.set_bin("fixed", 2);
 		break;
 	}
 	case 20: {
 		mainQuad20 = nodePath;
+		nodePath.set_bin("fixed", 2);
 		break;
 	}
 	case 21: {
 		mainQuad21 = nodePath;
+		nodePath.set_bin("fixed", 2);
 		break;
 	}
 	case 22: {
 		mainQuad22 = nodePath;
+		nodePath.set_bin("fixed", 2);
 		break;
 	}
 	case 23: {
 		mainQuad23 = nodePath;
+		nodePath.set_bin("fixed", 2);
 		break;
 	}
 	case 24: {
 		mainQuad24 = nodePath;
+		nodePath.set_bin("fixed", 2);
 		break;
 	}
 	case 25: {
 		mainQuad25 = nodePath;
+		nodePath.set_bin("fixed", 2);
 		break;
 	}
 	case 26: {
 		mainQuad26 = nodePath;
+		nodePath.set_bin("fixed", 2);
 		break;
 	}
 	case 27: {
 		mainQuad27 = nodePath;
+		nodePath.set_bin("fixed", 2);
 		break;
 	}
 	}
