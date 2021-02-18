@@ -234,6 +234,7 @@ float VDBGrid::getValue(float x, float y, float z)
 
 void VDBGrid::spawnSphere(LVector3f pos) //Axis are inverted!
 {
+	//axis are inverted  looks like 1000 is middle
 	openvdb::tools::changeBackground(grid->tree(), 1.5);
 
 	// Generate a level set grid.

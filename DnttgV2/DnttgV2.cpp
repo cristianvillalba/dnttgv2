@@ -89,6 +89,7 @@ NodePath mainQuad26;
 NodePath mainQuad27;
 
 PT(Texture) gridTextureArray[27];
+LVector3f gridCoordOffset[27];
 
 //Window main
 WindowFramework *mainWindow;
@@ -104,7 +105,7 @@ int GRID_y = 0;
 int GRID_z = 0;
 
 //Grid Scale
-float GRID_SCALE = 1000.0f;
+float GRID_SCALE = 10.0f;
 
 //grid frustrum
 GridFrustrum gridFrustrum;
@@ -309,6 +310,7 @@ AsyncTask::DoneStatus modifyGrid(GenericAsyncTask *task, void *data)
 	{
 		//LVector3f fw = mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, -0.10));
 		LVector3f fw = mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, 0));
+		fw /= GRID_SCALE;
 		fw *= -1000;
 		fw.add_x(GRID_x * 1000);
 		fw.add_y(GRID_y * 1000);
@@ -604,34 +606,38 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 	//float nCAM_y;
 	ANGLEDEGREES = ANGLEDEGREES + SPINVEL * globalClock->get_dt();
 
-	if (nCAM_x > 0.5  || nCAM_x < -0.5  ||
-		//nCAM_y > 0.5 || nCAM_y < -0.5  ||
-		nCAM_z > 0.5  || nCAM_z < -0.5 
+	if (nCAM_x > 0.5 * GRID_SCALE  || nCAM_x < -0.5 * GRID_SCALE ||
+		//nCAM_y > 0.5 * GRID_SCALE || nCAM_y < -0.5 * GRID_SCALE ||
+		nCAM_z > 0.5 * GRID_SCALE || nCAM_z < -0.5 * GRID_SCALE
 		)
 	{
-		if (nCAM_x > 0.5 )
+		if (nCAM_x > 0.5 * GRID_SCALE)
 		{
 			GRID_x--;
+			nCAM_x = -0.5 * GRID_SCALE + abs(0.5 * GRID_SCALE - nCAM_x);
 		}
-		if (nCAM_x < -0.5)
+		else if (nCAM_x < -0.5 * GRID_SCALE)
 		{
 			GRID_x++;
+			nCAM_x = 0.5 * GRID_SCALE - abs(-0.5 * GRID_SCALE - nCAM_x);
 		}
-		/*if (nCAM_y > 0.5 )
+		/*if (nCAM_y > 0.5 * GRID_SCALE)
 		{
 
 		}
-		if (nCAM_y < -0.5 )
+		if (nCAM_y < -0.5 * GRID_SCALE)
 		{
 
 		}*/
-		if (nCAM_z > 0.5 )
+		if (nCAM_z > 0.5 * GRID_SCALE)
 		{
 			GRID_z--;
+			nCAM_z = -0.5 * GRID_SCALE + abs(0.5 * GRID_SCALE - nCAM_z);
 		}
-		if (nCAM_z < -0.5)
+		else if (nCAM_z < -0.5 * GRID_SCALE)
 		{
 			GRID_z++;
+			nCAM_z = 0.5 * GRID_SCALE - abs(-0.5 * GRID_SCALE - nCAM_z);
 		}
 
 		if (!*pREFRESHGRID)
@@ -644,11 +650,8 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 
 	//CAM_x = nCAM_x  - floor(nCAM_x + 0.5); //keep cam always in middle range -0.5 0.5
 	//CAM_z = nCAM_z  - floor(nCAM_z + 0.5); //keep cam always in middle range -0.5 0.5
-	//CAM_x = (fmodf(nCAM_x + 0.5 * GRID_SCALE, GRID_SCALE) - 0.5 * GRID_SCALE);
-	//CAM_z = (fmodf(nCAM_z + 0.5 * GRID_SCALE, GRID_SCALE) - 0.5 * GRID_SCALE);
 	CAM_x = nCAM_x;
 	CAM_z = nCAM_z;
-
 
 	camera.set_pos(CAM_x, CAM_y,  CAM_z);
 	camera.set_hpr(0, 0, ANGLEDEGREES);
@@ -786,8 +789,8 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 	}
 	*/
 
-	//std::cout << "x: " << GRID_x << " y: " << GRID_y << " z: " << GRID_z << "\n";
-	std::cout << "x: " << CAM_x << " y: " << CAM_y << " z: " << CAM_z << "\n";
+	//std::cout << "GRID x: " << GRID_x << " y: " << GRID_y << " z: " << GRID_z << "\n";
+	//std::cout << "x: " << CAM_x << " y: " << CAM_y << " z: " << CAM_z << "\n";
 	// Tell the task manager to continue this task the next frame.
 	return AsyncTask::DS_cont;
 }
@@ -2748,7 +2751,6 @@ void MakeShadertoy(int argc, char *argv[])
 
 	//generate compute shader
 	//copyTextureShader = Shader::load_compute(Shader::ShaderLanguage::SL_GLSL, "shaders/copytexture.glsl");
-
 
 	GenerateTextureBuffer(width, height, window, envscene);
 
