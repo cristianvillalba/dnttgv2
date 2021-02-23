@@ -33,12 +33,10 @@ float map( in vec3 p )
 	//p.x = p.x + noisex/10.0;
 	//p.y = p.y + noisey/10.0;
 	//p.z = p.z + noisez/10.0;
+	p.y = -p.y;
+	p *= (1/scale.x);
 	
-	//vec4 prevpos = vec4( p.x, p.y , p.z, 1 );
-	//vec4 newpos = prevpos * scalematrix;
-	//vec3 finalpos = vec3(newpos.x, newpos.y, newpos.z);
-		
-	//vec4 color = texture(p3d_Texture0, finalpos);
+
 	vec4 color = texture(p3d_Texture0, p);
 	
     return color.r;
@@ -47,6 +45,81 @@ float map( in vec3 p )
 float sdSphere( vec3 p, float s )
 {
     return length(p)-s;
+}
+
+// Amanatides & Woo style voxel traversal
+//vec3 voxelSize = vec3(sin(osg_FrameTime)*2.0 + 2.0); // in world space
+vec3 voxelSize = vec3(0.5);
+//const vec3 voxelSize = vec3(0.2);
+
+vec3 worldToVoxel(vec3 i)
+{
+    return floor(i/voxelSize);
+}
+
+vec3 voxelToWorld(vec3 i)
+{
+    return i*voxelSize;	
+}
+
+vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
+{
+    const int maxSteps = 64;
+    const float isoValue = 0.0;
+
+    vec3 voxel = worldToVoxel(ro);
+    vec3 step = sign(rd);
+
+    vec3 nearestVoxel = voxel + vec3(rd.x > 0.0, rd.y > 0.0, rd.z > 0.0);
+    vec3 tMax = (voxelToWorld(nearestVoxel) - ro) / rd;
+    vec3 tDelta = voxelSize / abs(rd);
+
+    vec3 hitVoxel = voxel;
+	
+    hit = false;
+    float hitT = 0.0;
+    for(int i=0; i<maxSteps; i++) {
+        float d = map(voxelToWorld(voxel));        
+        if (d != isoValue && !hit) {
+            hit = true;
+	    	hitVoxel = voxel;
+            //break;
+        }
+
+        if (tMax.x < tMax.y && tMax.x < tMax.z) { 
+            voxel.x += step.x;
+            tMax.x += tDelta.x;
+			if (!hit) {
+				hitNormal = vec3(-step.x, 0.0, 0.0);
+				hitT = tMax.x;
+			}
+        } else if (tMax.y < tMax.z) {
+            voxel.y += step.y;
+            tMax.y += tDelta.y;
+			if (!hit) {
+				hitNormal = vec3(0.0, -step.y, 0.0);		
+				hitT = tMax.y;
+			}
+        } else {
+            voxel.z += step.z;
+            tMax.z += tDelta.z;
+			if (!hit) {
+				hitNormal = vec3(0.0, 0.0, -step.z);		
+				hitT = tMax.z;
+			}
+        }
+     
+#if 0
+        if ((voxel.x < 0) || (voxel.x >= size.width) ||
+            (voxel.y < 0) || (voxel.y >= size.height) ||
+            (voxel.z < 0) || (voxel.z >= size.depth)) {
+            break;            
+        }
+#endif	    
+    }
+
+    //return voxelToWorld(hitVoxel);
+	return ro + hitT*rd;
 }
 
 void main() {
@@ -76,35 +149,21 @@ void main() {
 	// create view ray
 	vec3 rd = normalize( p.x*uu + p.y*vv + 1.5*ww );
 
-	// raymarch
-	const float tmax = 128;
-	float t = 0.0;
-	for( int i=0; i<128; i++ )
-	{
-		vec3 pos = ro + rd*40*i/128;
-		pos.y = -pos.y;
-		pos *= 1/scale.x;
-		
-		//pos *= 1/(sin(osg_FrameTime)*1.0 + 1.0);
+	//raycast
+	// trace ray
+    bool hit;
+    //vec3 pos = trace(ro, rd, hit);
+    vec3 n;
+    vec3 pos = voxelTrace(ro, rd, hit, n);
 	
-		//pos *= 1/scale.x;
-		float h = map(pos);
-		//float h = sdSphere(pos, 0.25);
-		if( h != 0.0 ){ 
-			//t = (1.0 - i/100.0);
-			//break;
-			//t = (1.0 - i/150.0);
-			t = (1.0 - i/75.0);
-			//t = h;
-			break;
-		}
+	if (hit)
+	{
+		gl_FragColor = vec4(0.8, 0, 0, 1.0);
 	}
-  
-	//vec2 pos = vec2((gl_FragCoord.x/800*2.0 -1.0) * PI, (gl_FragCoord.y/600*2.0 - 1.0)* PI);
-	//gl_FragColor = vec4(0.2, 0.6, 1., 1.) * abs(sin(20.*pos.y + 20.*sin(pos.x + osg_FrameTime)));
-		
-	//if t != 0 then alpha is 1.0
-	//otherwise alpha is 0.0
-	gl_FragColor = vec4(t, 0, 0, abs(step(0,-t) - 1));
+	else
+	{
+		gl_FragColor = vec4(1, 1, 1, 0);
+	}
+
 	
 }
