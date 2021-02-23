@@ -76,9 +76,9 @@ vec3 shade(vec3 pos, vec3 n, vec3 eyePos)
 }
 
 // Amanatides & Woo style voxel traversal
-//vec3 voxelSize = vec3(sin(osg_FrameTime)*2.0 + 2.0); // in world space
-vec3 voxelSize = vec3(0.5);
-//const vec3 voxelSize = vec3(0.2);
+//vec3 voxelSize = vec3(sin(osg_FrameTime) + 1.0); // in world space
+vec3 voxelSize = vec3(0.05*scale.x);
+
 
 vec3 worldToVoxel(vec3 i)
 {
