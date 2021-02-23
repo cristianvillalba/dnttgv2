@@ -1,6 +1,7 @@
 #version 130
 
 #define PI 3.141592
+//https://www.shadertoy.com/view/4ds3zr
 
 //#define SCALE 4.0
 //#define OFFSET 0.5 * SCALE //it was 0.5
@@ -45,6 +46,33 @@ float map( in vec3 p )
 float sdSphere( vec3 p, float s )
 {
     return length(p)-s;
+}
+
+
+// lighting
+vec3 shade(vec3 pos, vec3 n, vec3 eyePos)
+{
+    const vec3 lightPos = vec3(4.0, 3.0, 5.0);
+    const vec3 color = vec3(1.0, 1.0, 0.0);
+    const float shininess = 40.0;
+
+    vec3 l = normalize(lightPos - pos);
+    vec3 v = normalize(eyePos - pos);
+    vec3 h = normalize(v + l);
+    float diff = dot(n, l);
+    float spec = max(0.0, pow(dot(n, h), shininess)) * float(diff > 0.0);
+    diff = max(0.0, diff);
+    //diff = 0.5+0.5*diff;
+
+    float fresnel = pow(1.0 - dot(n, v), 5.0);
+    //float ao = ambientOcclusion(pos, n);
+
+	return vec3(diff);
+//    return vec3(diff*ao)*color + vec3(spec + fresnel*0.5);
+//    return vec3(diff*ao)*color;	
+//    return vec3(diff*ao)*color + vec3(spec);
+//    return vec3(ao);
+//    return vec3(fresnel);
 }
 
 // Amanatides & Woo style voxel traversal
@@ -108,14 +136,7 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
 				hitT = tMax.z;
 			}
         }
-     
-#if 0
-        if ((voxel.x < 0) || (voxel.x >= size.width) ||
-            (voxel.y < 0) || (voxel.y >= size.height) ||
-            (voxel.z < 0) || (voxel.z >= size.depth)) {
-            break;            
-        }
-#endif	    
+         
     }
 
     //return voxelToWorld(hitVoxel);
@@ -152,13 +173,16 @@ void main() {
 	//raycast
 	// trace ray
     bool hit;
-    //vec3 pos = trace(ro, rd, hit);
+
     vec3 n;
     vec3 pos = voxelTrace(ro, rd, hit, n);
 	
 	if (hit)
 	{
-		gl_FragColor = vec4(0.8, 0, 0, 1.0);
+		// shade
+        vec3 rgb = shade(pos, n, ro);
+		//gl_FragColor = vec4(0.8, 0, 0, 1.0);
+		gl_FragColor = vec4(rgb.r, rgb.g, rgb.b, 1.0);
 	}
 	else
 	{
