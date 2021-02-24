@@ -118,21 +118,24 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
             voxel.x += step.x;
             tMax.x += tDelta.x;
 			if (!hit) {
-				hitNormal = vec3(-step.x, 0.0, 0.0);
+				//hitNormal = vec3(-step.x, 0.0, 0.0);
+				hitNormal = vec3(1.0, 0.0, 0.0);
 				hitT = tMax.x;
 			}
         } else if (tMax.y < tMax.z) {
             voxel.y += step.y;
             tMax.y += tDelta.y;
 			if (!hit) {
-				hitNormal = vec3(0.0, -step.y, 0.0);		
+				//hitNormal = vec3(0.0, -step.y, 0.0);		
+				hitNormal = vec3(0.0, 1.0, 0.0);		
 				hitT = tMax.y;
 			}
         } else {
             voxel.z += step.z;
             tMax.z += tDelta.z;
 			if (!hit) {
-				hitNormal = vec3(0.0, 0.0, -step.z);		
+				//hitNormal = vec3(0.0, 0.0, -step.z);
+				hitNormal = vec3(0.0, 0.0, 1.0);						
 				hitT = tMax.z;
 			}
         }
@@ -182,7 +185,8 @@ void main() {
 		// shade
         vec3 rgb = shade(pos, n, ro);
 		//gl_FragColor = vec4(0.8, 0, 0, 1.0);
-		gl_FragColor = vec4(rgb.r, rgb.g, rgb.b, 1.0);
+		//gl_FragColor = vec4(rgb.r, rgb.g, rgb.b, 1.0); //some lighting
+		gl_FragColor = vec4(n.x, n.y, n.z, 1.0); //check normals
 	}
 	else
 	{
