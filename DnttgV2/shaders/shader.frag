@@ -94,6 +94,10 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
 {
     const int maxSteps = 64;
     const float isoValue = 0.0;
+	
+	float rvalue = 0;
+	float gvalue = 0;
+	float bvalue = 0.5;
 
     vec3 voxel = worldToVoxel(ro);
     vec3 step = sign(rd);
@@ -119,7 +123,21 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
             tMax.x += tDelta.x;
 			if (!hit) {
 				//hitNormal = vec3(-step.x, 0.0, 0.0);
-				hitNormal = vec3(1.0, 0.0, 0.0);
+				
+				if (-step.x == -1){
+					//hitNormal = vec3(1.0, 0.0, 0.0);
+					rvalue = 1.0;
+					gvalue = 0.5;
+					bvalue = 0.5;
+				}
+				else 
+				{
+					//hitNormal = vec3(0.0, 0.0, 0.0);
+					rvalue = 0.0;
+					gvalue = 0.5;
+					bvalue = 0.5;
+				}
+				
 				hitT = tMax.x;
 			}
         } else if (tMax.y < tMax.z) {
@@ -127,7 +145,22 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
             tMax.y += tDelta.y;
 			if (!hit) {
 				//hitNormal = vec3(0.0, -step.y, 0.0);		
-				hitNormal = vec3(0.0, 1.0, 0.0);		
+				//hitNormal = vec3(0.0, 1.0, 0.0);		
+				
+				if (-step.y == -1){
+					//hitNormal = vec3(1.0, 0.0, 0.0);
+					rvalue = 0.5;
+					gvalue = 1.0;
+					bvalue = 0.5;
+				}
+				else 
+				{
+					//hitNormal = vec3(0.0, 0.0, 0.0);
+					rvalue = 0.5;
+					gvalue = 0.0;
+					bvalue = 0.5;
+				}
+				
 				hitT = tMax.y;
 			}
         } else {
@@ -135,12 +168,29 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
             tMax.z += tDelta.z;
 			if (!hit) {
 				//hitNormal = vec3(0.0, 0.0, -step.z);
-				hitNormal = vec3(0.0, 0.0, 1.0);						
+				//hitNormal = vec3(0.0, 0.0, 1.0);
+				
+				if (-step.z == -1){
+					//hitNormal = vec3(1.0, 0.0, 0.0);
+					rvalue = 0.5;
+					gvalue = 0.5;
+					bvalue = 1.0;
+				}
+				else 
+				{
+					//hitNormal = vec3(0.0, 0.0, 0.0);
+					rvalue = 0.5;
+					gvalue = 0.5;
+					bvalue = 1.0;
+				}
+				
 				hitT = tMax.z;
 			}
         }
          
     }
+	
+	hitNormal = vec3(rvalue, gvalue, bvalue);
 
     //return voxelToWorld(hitVoxel);
 	return ro + hitT*rd;
