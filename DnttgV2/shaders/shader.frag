@@ -95,8 +95,8 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
     const int maxSteps = 64;
     const float isoValue = 0.0;
 	
-	float rvalue = 0;
-	float gvalue = 0;
+	float rvalue = 0.5;
+	float gvalue = 0.5;
 	float bvalue = 0.5;
 
     vec3 voxel = worldToVoxel(ro);
@@ -150,15 +150,15 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
 				if (-step.y == -1){
 					//hitNormal = vec3(1.0, 0.0, 0.0);
 					rvalue = 0.5;
-					gvalue = 1.0;
-					bvalue = 0.5;
+					gvalue = 0.5;
+					bvalue = 1.0;
 				}
 				else 
 				{
 					//hitNormal = vec3(0.0, 0.0, 0.0);
 					rvalue = 0.5;
-					gvalue = 0.0;
-					bvalue = 0.5;
+					gvalue = 0.5;
+					bvalue = 1.0;
 				}
 				
 				hitT = tMax.y;
@@ -173,15 +173,15 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
 				if (-step.z == -1){
 					//hitNormal = vec3(1.0, 0.0, 0.0);
 					rvalue = 0.5;
-					gvalue = 0.5;
-					bvalue = 1.0;
+					gvalue = 1.0;
+					bvalue = 0.5;
 				}
 				else 
 				{
 					//hitNormal = vec3(0.0, 0.0, 0.0);
 					rvalue = 0.5;
-					gvalue = 0.5;
-					bvalue = 1.0;
+					gvalue = 0.0;
+					bvalue = 0.5;
 				}
 				
 				hitT = tMax.z;
