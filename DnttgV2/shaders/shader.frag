@@ -39,7 +39,7 @@ float map( in vec3 p )
 	
 
 	vec4 color = texture(p3d_Texture0, p);
-	
+		
     return color.r;
 }
 
@@ -95,9 +95,9 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
     const int maxSteps = 64;
     const float isoValue = 0.0;
 	
-	float rvalue = 0.5;
-	float gvalue = 0.5;
-	float bvalue = 0.5;
+	float rvalue = 0.0;
+	float gvalue = 0.0;
+	float bvalue = 0.0;
 
     vec3 voxel = worldToVoxel(ro);
     vec3 step = sign(rd);
@@ -115,27 +115,24 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
         if (d != isoValue && !hit) {
             hit = true;
 	    	hitVoxel = voxel;
-            //break;
+            break;
         }
 
         if (tMax.x < tMax.y && tMax.x < tMax.z) { 
             voxel.x += step.x;
             tMax.x += tDelta.x;
 			if (!hit) {
-				//hitNormal = vec3(-step.x, 0.0, 0.0);
 				
 				if (-step.x == -1){
-					//hitNormal = vec3(1.0, 0.0, 0.0);
 					rvalue = 1.0;
-					gvalue = 0.5;
-					bvalue = 0.5;
+					gvalue = 0.0;
+					bvalue = 0.0;
 				}
 				else 
 				{
-					//hitNormal = vec3(0.0, 0.0, 0.0);
-					rvalue = 0.0;
-					gvalue = 0.5;
-					bvalue = 0.5;
+					rvalue = -1.0;
+					gvalue = 0.0;
+					bvalue = 0.0;
 				}
 				
 				hitT = tMax.x;
@@ -144,21 +141,17 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
             voxel.y += step.y;
             tMax.y += tDelta.y;
 			if (!hit) {
-				//hitNormal = vec3(0.0, -step.y, 0.0);		
-				//hitNormal = vec3(0.0, 1.0, 0.0);		
 				
 				if (-step.y == -1){
-					//hitNormal = vec3(1.0, 0.0, 0.0);
-					rvalue = 0.5;
-					gvalue = 0.5;
-					bvalue = 1.0;
+					rvalue = 0.0;
+					gvalue = -1.0;
+					bvalue = 0.0;
 				}
 				else 
 				{
-					//hitNormal = vec3(0.0, 0.0, 0.0);
-					rvalue = 0.5;
-					gvalue = 0.5;
-					bvalue = 1.0;
+					rvalue = 0.0;
+					gvalue = 1.0;
+					bvalue = 0.0;
 				}
 				
 				hitT = tMax.y;
@@ -167,21 +160,17 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
             voxel.z += step.z;
             tMax.z += tDelta.z;
 			if (!hit) {
-				//hitNormal = vec3(0.0, 0.0, -step.z);
-				//hitNormal = vec3(0.0, 0.0, 1.0);
 				
 				if (-step.z == -1){
-					//hitNormal = vec3(1.0, 0.0, 0.0);
-					rvalue = 0.5;
-					gvalue = 1.0;
-					bvalue = 0.5;
+					rvalue = 0.0;
+					gvalue = 0.0;
+					bvalue = 1.0;
 				}
 				else 
 				{
-					//hitNormal = vec3(0.0, 0.0, 0.0);
-					rvalue = 0.5;
+					rvalue = 0.0;
 					gvalue = 0.0;
-					bvalue = 0.5;
+					bvalue = -1.0;
 				}
 				
 				hitT = tMax.z;
@@ -194,6 +183,27 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
 
     //return voxelToWorld(hitVoxel);
 	return ro + hitT*rd;
+}
+
+bool lightTrace(vec3 ro, vec3 rd)
+{
+	float t = 0;
+	
+    for (int i = 0; i < 200; i++)
+	{
+		vec3 pos = ro + t * rd;
+		
+		float distance = map(pos);
+		
+		if (distance != 0.0)
+		{
+			return true;
+		}
+		
+		t += 0.1;
+	}
+	
+	return false;
 }
 
 void main() {
@@ -223,20 +233,44 @@ void main() {
 	// create view ray
 	vec3 rd = normalize( p.x*uu + p.y*vv + 1.5*ww );
 
-	//raycast
-	// trace ray
+	//raycast trace ray
+	vec3 col = vec3(1.0);
     bool hit;
 
-    vec3 n;
+    vec3 n; //normal
     vec3 pos = voxelTrace(ro, rd, hit, n);
 	
 	if (hit)
 	{
 		// shade
-        vec3 rgb = shade(pos, n, ro);
+        //vec3 col = shade(pos, n, ro);
 		//gl_FragColor = vec4(0.8, 0, 0, 1.0);
 		//gl_FragColor = vec4(rgb.r, rgb.g, rgb.b, 1.0); //some lighting
-		gl_FragColor = vec4(n.x, n.y, n.z, 1.0); //check normals
+		//gl_FragColor = vec4(n.x, n.y, n.z, 1.0); //check normals
+		
+		vec3 material = vec3(0.2);
+		
+		vec3 sun_dir = normalize(vec3(1.0, 1.0, 0.0));
+		//vec3 sun_dir = normalize(vec3(sin(osg_FrameTime), cos(osg_FrameTime), 0.0));
+		float sun_diff = clamp( dot(n, sun_dir), 0.0, 1.0); //dot product with sun and normal
+		float sky_diff = clamp( 0.5 + 0.5*dot(n, vec3(0.0, 1.0, 0.0)), 0.0, 1.0); //dot product with sky(like a light coming from Y axis) and normal + bias --- change from -1 - 1 to 0 - 1 
+		float bounce_diff = clamp( 0.5 + 0.5*dot(n, vec3(0.0, -1.0, 0.0)), 0.0, 1.0);
+		
+		//bool hitlight = lightTrace(pos + n*0.1, sun_dir);
+		float sun_shad = 1.0;
+		
+		//if (hitlight)
+		//{
+		//	sun_shad = 0.0;
+		//}
+		
+		col = material*vec3(7.0, 5.0, 3.5) * sun_diff*sun_shad;
+		col += material*vec3(0.45, 0.86, 0.89) * sky_diff;
+		col += material*vec3(0.7, 0.3, 0.2) * bounce_diff;
+		
+		col = pow(col, vec3(0.4545)); //gamma correction
+		 
+		gl_FragColor = vec4(col, 1.0);
 	}
 	else
 	{

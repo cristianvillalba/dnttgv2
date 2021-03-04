@@ -113,6 +113,7 @@ GridFrustrum gridFrustrum;
 //Velocity vector/Acceleration
 float VELX = 0.0;
 float VELY = 0.0;
+float VELZ = 0.0;
 float ACCELERATION = 20.0;
 float SPINVEL = 0;
 float ANGLEDEGREES = 0;
@@ -122,6 +123,8 @@ bool FORWARD = false;
 bool BACKWARDS = false;
 bool LEFT = false;
 bool RIGHT = false;
+bool UP = false;
+bool DOWN = false;
 bool SPINL = false;
 bool SPINR = false;
 bool SPAWN = false;
@@ -260,6 +263,38 @@ void rightCameraUp(const Event* eventPtr, void* dataPtr)
 	if (RIGHT)
 	{
 		RIGHT = false;
+	}
+}
+
+void upCamera(const Event* eventPtr, void* dataPtr)
+{
+	if (!UP)
+	{
+		UP = true;
+	}
+}
+
+void upCameraUp(const Event* eventPtr, void* dataPtr)
+{
+	if (UP)
+	{
+		UP = false;
+	}
+}
+
+void downCamera(const Event* eventPtr, void* dataPtr)
+{
+	if (!DOWN)
+	{
+		DOWN = true;
+	}
+}
+
+void downCameraUp(const Event* eventPtr, void* dataPtr)
+{
+	if (DOWN)
+	{
+		DOWN = false;
 	}
 }
 
@@ -541,6 +576,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 
 		VELX = VELX + ACCELERATION * globalClock->get_dt() * fw.get_x();
 		VELY = VELY + ACCELERATION * globalClock->get_dt() * fw.get_z();
+		VELZ = VELZ + ACCELERATION * globalClock->get_dt() * fw.get_y();
 	}
 
 	if (BACKWARDS)
@@ -550,6 +586,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 
 		VELX = VELX + ACCELERATION * globalClock->get_dt() * fw.get_x();
 		VELY = VELY + ACCELERATION * globalClock->get_dt() * fw.get_z();
+		VELZ = VELZ + ACCELERATION * globalClock->get_dt() * fw.get_y();
 	}
 
 	if (LEFT)
@@ -559,6 +596,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 
 		VELX = VELX + ACCELERATION * globalClock->get_dt() * fw.get_x();
 		VELY = VELY + ACCELERATION * globalClock->get_dt() * fw.get_z();
+		VELZ = VELZ + ACCELERATION * globalClock->get_dt() * fw.get_y();
 	}
 
 	if (RIGHT)
@@ -568,6 +606,27 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 
 		VELX = VELX + ACCELERATION * globalClock->get_dt() * fw.get_x();
 		VELY = VELY + ACCELERATION * globalClock->get_dt() * fw.get_z();
+		VELZ = VELZ + ACCELERATION * globalClock->get_dt() * fw.get_y();
+	}
+
+	if (UP)
+	{
+		LVector3f fw = mainWindow->get_render().get_relative_point(camera, LVector3f(0.0, -1.0, 0.0));
+		fw = fw - camera.get_pos();
+
+		VELX = VELX + ACCELERATION * globalClock->get_dt() * fw.get_x();
+		VELY = VELY + ACCELERATION * globalClock->get_dt() * fw.get_z();
+		VELZ = VELZ + ACCELERATION * globalClock->get_dt() * fw.get_y();
+	}
+
+	if (DOWN)
+	{
+		LVector3f fw = mainWindow->get_render().get_relative_point(camera, LVector3f(0.0, 1.0, 0.0));
+		fw = fw - camera.get_pos();
+
+		VELX = VELX + ACCELERATION * globalClock->get_dt() * fw.get_x();
+		VELY = VELY + ACCELERATION * globalClock->get_dt() * fw.get_z();
+		VELZ = VELZ + ACCELERATION * globalClock->get_dt() * fw.get_y();
 	}
 
 	if (SPINL)
@@ -582,6 +641,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 
 	VELX = VELX * 0.9;
 	VELY = VELY * 0.9;
+	VELZ = VELZ * 0.9;
 
 	SPINVEL = SPINVEL * 0.9;
 
@@ -595,6 +655,11 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 		VELY = 0.0f;
 	}
 
+	if (abs(VELZ) < 0.0001)
+	{
+		VELZ = 0.0f;
+	}
+
 	if (abs(SPINVEL) < 0.0001)
 	{
 		SPINVEL = 0.0f;
@@ -603,11 +668,11 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 
 	float nCAM_x = CAM_x - VELX * globalClock->get_dt();
 	float nCAM_z = CAM_z - VELY * globalClock->get_dt();
-	//float nCAM_y;
+	float nCAM_y = CAM_y - VELZ * globalClock->get_dt();
 	ANGLEDEGREES = ANGLEDEGREES + SPINVEL * globalClock->get_dt();
 
-	if (nCAM_x > 0.5 * GRID_SCALE  || nCAM_x < -0.5 * GRID_SCALE ||
-		//nCAM_y > 0.5 * GRID_SCALE || nCAM_y < -0.5 * GRID_SCALE ||
+	if (nCAM_x > 0.5 * GRID_SCALE || nCAM_x < -0.5 * GRID_SCALE ||
+		nCAM_y > 0.5 * GRID_SCALE || nCAM_y < -0.5 * GRID_SCALE ||
 		nCAM_z > 0.5 * GRID_SCALE || nCAM_z < -0.5 * GRID_SCALE
 		)
 	{
@@ -621,14 +686,18 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 			GRID_x++;
 			nCAM_x = 0.5 * GRID_SCALE - abs(-0.5 * GRID_SCALE - nCAM_x);
 		}
-		/*if (nCAM_y > 0.5 * GRID_SCALE)
+		
+		if (nCAM_y > 0.5 * GRID_SCALE)
 		{
-
+			GRID_y--;
+			nCAM_y = -0.5 * GRID_SCALE + abs(0.5 * GRID_SCALE - nCAM_y);
 		}
-		if (nCAM_y < -0.5 * GRID_SCALE)
+		else if (nCAM_y < -0.5 * GRID_SCALE)
 		{
+			GRID_y++;
+			nCAM_y = 0.5 * GRID_SCALE + abs(-0.5 * GRID_SCALE - nCAM_y);
+		}
 
-		}*/
 		if (nCAM_z > 0.5 * GRID_SCALE)
 		{
 			GRID_z--;
@@ -652,6 +721,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 	//CAM_z = nCAM_z  - floor(nCAM_z + 0.5); //keep cam always in middle range -0.5 0.5
 	CAM_x = nCAM_x;
 	CAM_z = nCAM_z;
+	CAM_y = nCAM_y;
 
 	camera.set_pos(CAM_x, CAM_y,  CAM_z);
 	camera.set_hpr(0, 0, ANGLEDEGREES);
@@ -2730,6 +2800,12 @@ void MakeShadertoy(int argc, char *argv[])
 	framework.define_key("a-up", "left cam", leftCameraUp, nullptr);
 	framework.define_key("d", "right cam", rightCamera, nullptr);
 	framework.define_key("d-up", "right cam", rightCameraUp, nullptr);
+
+	framework.define_key("q", "up cam", upCamera, nullptr);
+	framework.define_key("q-up", "up cam", upCameraUp, nullptr);
+
+	framework.define_key("e", "down cam", downCamera, nullptr);
+	framework.define_key("e-up", "down cam", downCameraUp, nullptr);
 
 	framework.define_key("space", "modify grid", spawnSphere, nullptr);
 
