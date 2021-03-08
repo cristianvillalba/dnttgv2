@@ -513,6 +513,73 @@ void refresh3dTexture()
 	}
 }
 
+PT(Texture) RenderShadows(int gridx, int gridy, int gridz)
+{
+	int texsize = TEXTURESIZE * 2;
+
+	PT(Texture)  bunn = new Texture("bunn");
+	bunn->setup_3d_texture(texsize, texsize, texsize, Texture::ComponentType::T_float, Texture::Format::F_rgba8);
+
+
+	for (int k = 0; k < texsize; k++) {
+		PNMImage* pPNMImage = new PNMImage(texsize, texsize, 4);
+
+		for (int i = 0; i < texsize; i++)
+		{
+			for (int j = 0; j < texsize; j++)
+			{
+				//This is good for index sample
+				float x = (((float)i / texsize) - 0.5f) * 1000.0f * 3.0; //to expand 3 grids across axis
+				float y = (((float)j / texsize) - 0.5f) * 1000.0f * 3.0; //to expand 3 grids across axis
+				float z = (((float)k / texsize) - 0.5f) * 1000.0f * 3.0; //to expand 3 grids across axis
+
+				float r = 0.0f;
+				float g = 0.0f;
+				float b = 0.0f;
+
+				float data = grid->getValue(x - gridx * 1000, y - gridy * 1000, z - gridz * 1000);
+
+				if (data > 0)
+				{
+					r = 1.0f;
+					g = 1.0f;
+				}
+
+				if (BOUNDINGBOX == 1)
+				{
+					if ((i == 0 || i == (texsize - 1)) && (k == 0 || k == (texsize - 1)) ||
+						(j == 0 || j == (texsize - 1)) && (k == 0 || k == (texsize - 1)) ||
+						(i == 0 && j == 0) || (i == 0 && j == (texsize - 1)) ||
+						(i == (texsize - 1) && j == 0) || (i == (texsize - 1) && j == (texsize - 1))
+						)
+					{
+						r = 1.0f;
+						g = 1.0f;
+					}
+				}
+
+				pPNMImage->set_red(i, j, r);
+				pPNMImage->set_green(i, j, g);
+				pPNMImage->set_blue(i, j, b);
+				pPNMImage->set_alpha(i, j, 1.0f);
+			}
+		}
+
+		bunn->load(*pPNMImage, k, 0);
+
+		delete pPNMImage;
+	}
+
+	//bunn->write(Filename("shadow-#.png"), 0, 0, true, false);
+
+	bunn->set_wrap_u(SamplerState::WrapMode::WM_border_color);
+	bunn->set_wrap_v(SamplerState::WrapMode::WM_border_color);
+	bunn->set_wrap_w(SamplerState::WrapMode::WM_border_color);
+	bunn->set_border_color(LColor(0.0, 0.0, 0.0, 0.0));
+	bunn->set_keep_ram_image(true);
+	return bunn;
+}
+
 void refresh3dTexture(PT(Texture) texture, int gridx, int gridy, int gridz)
 {
 	int textsize = TEXTURESIZE * TEXTURESIZE * TEXTURESIZE * 4;
@@ -2831,6 +2898,8 @@ void MakeShadertoy(int argc, char *argv[])
 	GenerateTextureBuffer(width, height, window, envscene);
 
 	initGridFrustrum();
+
+	//RenderShadows(0, 0, 0);
 
 	
 	SceneGraphAnalyzer sga;

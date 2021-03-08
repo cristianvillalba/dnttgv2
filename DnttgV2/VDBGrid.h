@@ -34,5 +34,9 @@ public:
 	//void movePoints();
 
 	void spawnSphere(LVector3f pos);
+	void spawnBox(LVector3f pos);
+	
+	template<class GridType>
+	void makeBox(GridType& grid, const openvdb::Vec3f& c);
 };
 

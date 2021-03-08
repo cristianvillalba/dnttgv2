@@ -192,6 +192,7 @@ int VDBGrid::initGrid()
 
 	//for debug purposes
 	spawnSphere(LVector3f(1000, 0, 1500)); //axis are inverted  looks like 1000 is middle
+	spawnBox(LVector3f(0, -500, 0));
 	//spawnSphere(LVector3f(-500, 0, 500)); //axis are inverted  looks like 1000 is middle
 
 	return 0;
@@ -232,6 +233,27 @@ float VDBGrid::getValue(float x, float y, float z)
 	//return (float)indexValue;
 }
 
+void VDBGrid::spawnBox(LVector3f pos)
+{
+	//axis are inverted  looks like 1000 is middle
+	openvdb::tools::changeBackground(grid->tree(), 1.5);
+
+	openvdb::FloatGrid::Ptr boxGrid = openvdb::FloatGrid::create(/*background value=*/10.0);
+
+	makeBox(*boxGrid, /*center=*/openvdb::Vec3f(pos.get_x(), pos.get_y(), pos.get_z()));
+
+	for (openvdb::FloatGrid::ValueOffIter iter = boxGrid->beginValueOff(); iter; ++iter) {
+		if (iter.getValue() < 0.0) {
+			iter.setValue(1.0);
+			iter.setValueOff();
+		}
+	}
+
+	openvdb::tools::csgUnion(*grid, *boxGrid);
+
+	openvdb::tools::changeBackground(grid->tree(), 0.0);
+}
+
 void VDBGrid::spawnSphere(LVector3f pos) //Axis are inverted!
 {
 	//axis are inverted  looks like 1000 is middle
@@ -249,10 +271,56 @@ void VDBGrid::spawnSphere(LVector3f pos) //Axis are inverted!
 		}
 	}
 
+
 	openvdb::tools::csgUnion(*grid, *sphereGrid);
 
 	openvdb::tools::changeBackground(grid->tree(), 0.0);
 
+}
+
+template<class GridType>
+void VDBGrid::makeBox(GridType& grid, const openvdb::Vec3f& c)
+{
+	using ValueT = typename GridType::ValueType;
+	// Distance value for the constant region exterior to the narrow band
+	const ValueT outside = grid.background();
+	// Distance value for the constant region interior to the narrow band
+	// (by convention, the signed distance is negative in the interior of
+	// a level set)
+	const ValueT inside = -outside;
+	// Use the background value as the width in voxels of the narrow band.
+	// (The narrow band is centered on the surface of the sphere, which
+	// has distance 0.)
+	int padding = int(openvdb::math::RoundUp(openvdb::math::Abs(outside)));
+	// The bounding box of the narrow band is 2*dim voxels on a side.
+	int dim = int(400.0 + padding);
+	// Get a voxel accessor.
+	typename GridType::Accessor accessor = grid.getAccessor();
+	// Compute the signed distance from the surface of the sphere of each
+	// voxel within the bounding box and insert the value into the grid
+	// if it is smaller in magnitude than the background value.
+	openvdb::Coord ijk;
+	int &i = ijk[0], &j = ijk[1], &k = ijk[2];
+	for (i = c[0] - dim; i < c[0] + dim; ++i) {
+		const float x2 = openvdb::math::Pow2(i - c[0]);
+		for (j = c[1] - dim; j < c[1] + dim; ++j) {
+			const float x2y2 = openvdb::math::Pow2(j - c[1]) + x2;
+			for (k = c[2] - dim; k < c[2] + dim; ++k) {
+				// The distance from the sphere surface in voxels
+				const float dist = 0.5;
+				// Convert the floating-point distance to the grid's value type.
+				ValueT val = ValueT(dist);
+				// Only insert distances that are smaller in magnitude than
+				// the background value.
+				if (val < inside || outside < val) continue;
+				// Set the distance for voxel (i,j,k).
+				accessor.setValue(ijk, val);
+			}
+		}
+	}
+	// Propagate the outside/inside sign information from the narrow band
+	// throughout the grid.
+	openvdb::tools::signedFloodFill(grid.tree());
 }
 
 /*

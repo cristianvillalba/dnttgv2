@@ -52,6 +52,9 @@ void spawnSphere(const Event* eventPtr, void* dataPtr);
 PT(Texture) Render3dTexture(int gridx, int griy, int gridz);
 void refresh3dTexture();
 void refresh3dTexture(PT(Texture) texture, int gridx, int gridy, int gridz);
+PT(Texture) RenderShadows(int gridx, int gridy, int gridz);
+void refreshShadowTexture();
+
 
 //Headers
 void initGridFrustrum();
