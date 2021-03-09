@@ -60,6 +60,9 @@ VDBGrid*  grid;
 //global 3d texture
 PT(Texture) bunn;
 
+//Empty 3d texture;
+PT(Texture) emptyTexture;
+
 //Main Quad
 NodePath mainQuad01;
 NodePath mainQuad02;
@@ -473,7 +476,7 @@ void refresh3dTexture()
 	PTA_uchar image = gridFrustrum[keycenter]->modify_ram_image();
 
 	int z = 0;
-	int y = 127;
+	int y = (TEXTURESIZE - 1);
 	int x = 0;
 
 	for (int i = 0; i < textsize; i += 4)
@@ -507,7 +510,7 @@ void refresh3dTexture()
 
 			if (y == -1)
 			{
-				y = 127;
+				y = (TEXTURESIZE - 1);
 				z++;
 			}
 		}
@@ -588,7 +591,7 @@ void refresh3dTexture(PT(Texture) texture, int gridx, int gridy, int gridz)
 	PTA_uchar image = texture->modify_ram_image();
 
 	int z = 0;
-	int y = 127;
+	int y = (TEXTURESIZE - 1);
 	int x = 0;
 	std::cout << "refresh: " << gridx << " " << gridy << " " << gridz << "\n";
 	for (int i = 0; i < textsize; i += 4)
@@ -623,7 +626,7 @@ void refresh3dTexture(PT(Texture) texture, int gridx, int gridy, int gridz)
 
 			if (y == -1)
 			{
-				y = 127;
+				y = (TEXTURESIZE - 1);
 				z++;
 			}
 		}
@@ -1941,6 +1944,36 @@ void refreshGridFrustrum()
 	std::vector<CopyTuple> copyarray;
 
 	std::vector<RefreshTuple> refresharray;
+
+	//put empty texture on every quad
+	//prevent flickering on textures
+	mainQuad01.set_texture(emptyTexture);
+	mainQuad02.set_texture(emptyTexture);
+	mainQuad03.set_texture(emptyTexture);
+	mainQuad04.set_texture(emptyTexture);
+	mainQuad05.set_texture(emptyTexture);
+	mainQuad06.set_texture(emptyTexture);
+	mainQuad07.set_texture(emptyTexture);
+	mainQuad08.set_texture(emptyTexture);
+	mainQuad09.set_texture(emptyTexture);
+	mainQuad10.set_texture(emptyTexture);
+	mainQuad11.set_texture(emptyTexture);
+	mainQuad12.set_texture(emptyTexture);
+	mainQuad13.set_texture(emptyTexture);
+	mainQuad14.set_texture(emptyTexture);
+	mainQuad15.set_texture(emptyTexture);
+	mainQuad16.set_texture(emptyTexture);
+	mainQuad17.set_texture(emptyTexture);
+	mainQuad18.set_texture(emptyTexture);
+	mainQuad19.set_texture(emptyTexture);
+	mainQuad20.set_texture(emptyTexture);
+	mainQuad21.set_texture(emptyTexture);
+	mainQuad22.set_texture(emptyTexture);
+	mainQuad23.set_texture(emptyTexture);
+	mainQuad24.set_texture(emptyTexture);
+	mainQuad25.set_texture(emptyTexture);
+	mainQuad26.set_texture(emptyTexture);
+	mainQuad27.set_texture(emptyTexture);
 		
 	if (cache.count(key01) == 1)
 	{
@@ -2299,7 +2332,7 @@ void CleanTexture(PT(Texture) origin)
 	PTA_uchar imageorg = origin->modify_ram_image();
 
 	int z = 0;
-	int y = 127;
+	int y = (TEXTURESIZE - 1);
 	int x = 0;
 
 	for (int i = 0; i < textsize; i += 4)
@@ -2307,7 +2340,7 @@ void CleanTexture(PT(Texture) origin)
 		imageorg[i] = 0;  // BLUE COLOR
 		imageorg[i + 1] = 0; // GREEN COLOR
 		imageorg[i + 2] = 0; // RED COLOR
-		imageorg[i + 3] = 255; // ALPHA
+		imageorg[i + 3] = 0; // ALPHA
 
 		x++;
 
@@ -2318,13 +2351,13 @@ void CleanTexture(PT(Texture) origin)
 
 			if (y == -1)
 			{
-				y = 127;
+				y = (TEXTURESIZE - 1);
 				z++;
 			}
 		}
 	}
 
-	origin->reload();
+	//origin->reload();
 }
 
 int main(int argc, char *argv[]) {
@@ -2883,6 +2916,8 @@ void MakeShadertoy(int argc, char *argv[])
 	//window->setup_trackball(); //move camera with mouse, errors while trying to move the camera from code directly
 
 	bunn = Render3dTexture(0, 0, 0);//dummy bunny for testing
+	emptyTexture = Render3dTexture(0, 0, 0); 
+	CleanTexture(emptyTexture); //generate an empty texture;
 
 
 	std::cout << "max textures: " << window->get_graphics_output()->get_gsg()->get_max_texture_stages() << "\n";
