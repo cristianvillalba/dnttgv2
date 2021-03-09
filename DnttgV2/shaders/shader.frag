@@ -1,25 +1,20 @@
 #version 130
 
 #define PI 3.141592
+//contribution to voxel raycast:
 //https://www.shadertoy.com/view/4ds3zr
-
-//#define SCALE 4.0
-//#define OFFSET 0.5 * SCALE //it was 0.5
+//ambient occlusion and lighting from IQ
+//https://www.shadertoy.com/view/4dfGzs
 
 uniform sampler3D p3d_Texture0;
 
 uniform vec3 campos; //custom campos vector
 uniform vec3 target; //custom camdir vector
-uniform vec3 scale;  //custom scale  vector
+uniform vec3 params; //custom params vector (scale, scale, internal resolution)
 
 // Input from vertex shader
 //in vec2 texcoord;
 uniform float osg_FrameTime;
-
-mat4 scalematrix = mat4(5.0, 0.0, 0.0, 0.0,  // 1. column
-						0.0, 5.0, 0.0, 0.0,  // 2. column
-						0.0, 0.0, 5.0, 0.0,  // 3. column
-						0.0, 0.0, 0.0, 1.0); // 4. column
 
 float rand(vec2 co){
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
@@ -35,7 +30,7 @@ float map( in vec3 p )
 	//p.y = p.y + noisey/10.0;
 	//p.z = p.z + noisez/10.0;
 	p.y = -p.y;
-	p *= (1/scale.x);
+	p *= (1/params.x);
 	
 
 	vec4 color = texture(p3d_Texture0, p);
@@ -48,36 +43,9 @@ float sdSphere( vec3 p, float s )
     return length(p)-s;
 }
 
-
-// lighting
-vec3 shade(vec3 pos, vec3 n, vec3 eyePos)
-{
-    const vec3 lightPos = vec3(4.0, 3.0, 5.0);
-    const vec3 color = vec3(1.0, 1.0, 0.0);
-    const float shininess = 40.0;
-
-    vec3 l = normalize(lightPos - pos);
-    vec3 v = normalize(eyePos - pos);
-    vec3 h = normalize(v + l);
-    float diff = dot(n, l);
-    float spec = max(0.0, pow(dot(n, h), shininess)) * float(diff > 0.0);
-    diff = max(0.0, diff);
-    //diff = 0.5+0.5*diff;
-
-    float fresnel = pow(1.0 - dot(n, v), 5.0);
-    //float ao = ambientOcclusion(pos, n);
-
-	return vec3(diff);
-//    return vec3(diff*ao)*color + vec3(spec + fresnel*0.5);
-//    return vec3(diff*ao)*color;	
-//    return vec3(diff*ao)*color + vec3(spec);
-//    return vec3(ao);
-//    return vec3(fresnel);
-}
-
 // Amanatides & Woo style voxel traversal
 //vec3 voxelSize = vec3(sin(osg_FrameTime*0.25) + 1.0); // in world space
-vec3 voxelSize = vec3(0.05*scale.x);//original value
+vec3 voxelSize = vec3(0.05*params.x);//original value
 
 
 vec3 worldToVoxel(vec3 i)
@@ -227,23 +195,16 @@ float calcOcc( in vec2 uv, vec4 va, vec4 vb, vec4 vc, vec4 vd )
 }
 
 void main() {
-	//vec4 color = texture(p3d_Texture0, texcoord);
-	  
+  
 	// pixel coordinates
-	//vec2 p = vec2((2.0*gl_FragCoord.x-800)/600, (2.0*gl_FragCoord.y-600)/600);
-	vec2 p = vec2((2.0*gl_FragCoord.x-128)/128, (2.0*gl_FragCoord.y-128)/128); //this will change range to [-1...1]
+	vec2 p = vec2((2.0*gl_FragCoord.x-params.z)/params.z, (2.0*gl_FragCoord.y-params.z)/params.z); //this will change range to [-1...1]
 	
 	// camera movement	
 	float an = 0.2*osg_FrameTime;
 	
-	float OFFSET = 0.5 * scale.x;
-	//float OFFSET = 0.0;
+	float OFFSET = 0.5 * params.x;
 	
-	//center of texture3d is 0.5, 0.5, 0.5
-	//vec3 ro = vec3( 1.0*sin(an) + 0.5, -0.5, 1.0*cos(an) + 0.5); //this will spin in center
-	//vec3 ro = vec3( 0.5, -0.5, 1.5); //target of the camera	
 	vec3 ro = vec3( campos.x + OFFSET, campos.y -OFFSET, campos.z + OFFSET);
-	//vec3 ta = vec3( 0.5, -0.5, 0.5 );
 	vec3 ta = vec3( target.x + OFFSET, target.y -OFFSET, target.z + OFFSET);
 
 	// camera matrix
@@ -262,13 +223,7 @@ void main() {
     vec3 pos = voxelTrace(ro, rd, hit, n, outvox);
 	
 	if (hit)
-	{
-		// shade
-        //vec3 col = shade(pos, n, ro);
-		//gl_FragColor = vec4(0.8, 0, 0, 1.0);
-		//gl_FragColor = vec4(rgb.r, rgb.g, rgb.b, 1.0); //some lighting
-		//gl_FragColor = vec4(n.x, n.y, n.z, 1.0); //check normals
-		
+	{		
 		vec3 uvw = pos - voxelToWorld(outvox);
 		
 		vec3 material = vec3(0.2);

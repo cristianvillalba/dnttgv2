@@ -29,8 +29,9 @@
 #include "Dnntgv2.h"
 
 
-#define WIDTH 200
-#define HEIGHT 200
+#define WIDTH 200  //for bunny - first raycaster
+#define HEIGHT 200 //for bunny - first raycaster
+#define INTERNALRES 128 //internal texture resolution
 #define BUNNY 1
 #define BOUNDINGBOX 1
 #define TEXTURESIZE 32
@@ -799,113 +800,113 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 
 	mainQuad01.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 , 1.0 , 1.0 ) * GRID_SCALE);
 	mainQuad01.set_shader_input("target", lookAtDirection - LVector3f(1.0 , 1.0 , 1.0 ) * GRID_SCALE);
-	mainQuad01.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad01.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad02.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 , 1.0 , 1.0 ) * GRID_SCALE);
 	mainQuad02.set_shader_input("target", lookAtDirection - LVector3f(0.0 , 1.0 , 1.0 ) * GRID_SCALE);
-	mainQuad02.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad02.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad03.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 , 1.0 , 1.0 ) * GRID_SCALE);
 	mainQuad03.set_shader_input("target", lookAtDirection - LVector3f(-1.0 , 1.0 , 1.0 ) * GRID_SCALE);
-	mainQuad03.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad03.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad04.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 , 0.0 , 1.0 ) * GRID_SCALE);
 	mainQuad04.set_shader_input("target", lookAtDirection - LVector3f(1.0 , 0.0 , 1.0 ) * GRID_SCALE);
-	mainQuad04.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad04.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad05.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 , 0.0 , 1.0 ) * GRID_SCALE);
 	mainQuad05.set_shader_input("target", lookAtDirection - LVector3f(0.0 , 0.0 , 1.0 ) * GRID_SCALE);
-	mainQuad05.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad05.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad06.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 , 0.0 , 1.0 ) * GRID_SCALE);
 	mainQuad06.set_shader_input("target", lookAtDirection - LVector3f(-1.0 , 0.0 ,  1.0 ) * GRID_SCALE);
-	mainQuad06.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad06.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad07.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 , -1.0 , 1.0 ) * GRID_SCALE);
 	mainQuad07.set_shader_input("target", lookAtDirection - LVector3f(1.0 , -1.0 , 1.0 ) * GRID_SCALE);
-	mainQuad07.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad07.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad08.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 , -1.0 , 1.0 ) * GRID_SCALE);
 	mainQuad08.set_shader_input("target", lookAtDirection - LVector3f(0.0 , -1.0 , 1.0 ) * GRID_SCALE);
-	mainQuad08.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad08.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad09.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 ,-1.0 , 1.0 ) * GRID_SCALE);
 	mainQuad09.set_shader_input("target", lookAtDirection - LVector3f(-1.0 , -1.0 , 1.0 ) * GRID_SCALE);
-	mainQuad09.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad09.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	////--------------------
 	mainQuad10.set_shader_input("campos", camera.get_pos() - LVector3f(1.0, 1.0, 0.0) * GRID_SCALE);
 	mainQuad10.set_shader_input("target", lookAtDirection - LVector3f(1.0, 1.0, 0.0) * GRID_SCALE);
-	mainQuad10.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad10.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad11.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 , 1.0 , 0.0 ) * GRID_SCALE);
 	mainQuad11.set_shader_input("target", lookAtDirection - LVector3f(0.0 , 1.0 , 0.0 ) * GRID_SCALE);
-	mainQuad11.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad11.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad12.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 , 1.0 , 0.0 ) * GRID_SCALE);
 	mainQuad12.set_shader_input("target", lookAtDirection - LVector3f(-1.0 , 1.0 , 0.0 ) * GRID_SCALE);
-	mainQuad12.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad12.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad13.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 , 0.0 , 0.0 ) * GRID_SCALE);
 	mainQuad13.set_shader_input("target", lookAtDirection - LVector3f(1.0 , 0.0 , 0.0 ) * GRID_SCALE);
-	mainQuad13.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad13.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad14.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 , 0.0 , 0.0 ) * GRID_SCALE);
 	mainQuad14.set_shader_input("target", lookAtDirection - LVector3f(0.0 , 0.0 , 0.0 ) * GRID_SCALE);
-	mainQuad14.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad14.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad15.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 , 0.0 , 0.0 ) * GRID_SCALE);
 	mainQuad15.set_shader_input("target", lookAtDirection - LVector3f(-1.0 , 0.0 , 0.0 ) * GRID_SCALE);
-	mainQuad15.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad15.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad16.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 , -1.0 , 0.0 ) * GRID_SCALE);
 	mainQuad16.set_shader_input("target", lookAtDirection - LVector3f(1.0 , -1.0 , 0.0 ) * GRID_SCALE);
-	mainQuad16.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad16.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad17.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 , -1.0 , 0.0 ) * GRID_SCALE);
 	mainQuad17.set_shader_input("target", lookAtDirection - LVector3f(0.0 , -1.0 , 0.0 ) * GRID_SCALE);
-	mainQuad17.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad17.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad18.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 , -1.0 , 0.0 ) * GRID_SCALE);
 	mainQuad18.set_shader_input("target", lookAtDirection - LVector3f(-1.0 , -1.0 , 0.0 ) * GRID_SCALE);
-	mainQuad18.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad18.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	////--------------------
 	mainQuad19.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 , 1.0 , -1.0 ) * GRID_SCALE);
 	mainQuad19.set_shader_input("target", lookAtDirection - LVector3f(1.0 , 1.0 , -1.0 ) * GRID_SCALE);
-	mainQuad19.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad19.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad20.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 , 1.0 , -1.0 ) * GRID_SCALE);
 	mainQuad20.set_shader_input("target", lookAtDirection - LVector3f(0.0 , 1.0 , -1.0 ) * GRID_SCALE);
-	mainQuad20.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad20.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad21.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 , 1.0 , -1.0 ) * GRID_SCALE);
 	mainQuad21.set_shader_input("target", lookAtDirection - LVector3f(-1.0 , 1.0 , -1.0 ) * GRID_SCALE);
-	mainQuad21.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad21.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad22.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 , 0.0 , -1.0 ) * GRID_SCALE);
 	mainQuad22.set_shader_input("target", lookAtDirection - LVector3f(1.0 , 0.0 , -1.0 ) * GRID_SCALE);
-	mainQuad22.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad22.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad23.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 , 0.0 , -1.0 ) * GRID_SCALE);
 	mainQuad23.set_shader_input("target", lookAtDirection - LVector3f(0.0 , 0.0 , -1.0 ) * GRID_SCALE);
-	mainQuad23.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad23.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad24.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 , 0.0 , -1.0 ) * GRID_SCALE);
 	mainQuad24.set_shader_input("target", lookAtDirection - LVector3f(-1.0 , 0.0 , -1.0 ) * GRID_SCALE);
-	mainQuad24.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad24.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad25.set_shader_input("campos", camera.get_pos() - LVector3f(1.0 , -1.0 , -1.0 ) * GRID_SCALE);
 	mainQuad25.set_shader_input("target", lookAtDirection - LVector3f(1.0 , -1.0 , -1.0 ) * GRID_SCALE);
-	mainQuad25.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad25.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad26.set_shader_input("campos", camera.get_pos() - LVector3f(0.0 , -1.0 , -1.0 ) * GRID_SCALE);
 	mainQuad26.set_shader_input("target", lookAtDirection - LVector3f(0.0 , -1.0 , -1.0 ) * GRID_SCALE);
-	mainQuad26.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad26.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	mainQuad27.set_shader_input("campos", camera.get_pos() - LVector3f(-1.0 , -1.0 , -1.0 ) * GRID_SCALE);
 	mainQuad27.set_shader_input("target", lookAtDirection - LVector3f(-1.0 , -1.0 , -1.0 ) * GRID_SCALE);
-	mainQuad27.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	mainQuad27.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 	/*
 	if (-floor(CAM_x + 0.5) != GRID_x ||
@@ -2558,7 +2559,7 @@ void InitShader(int index, NodePath nodePath)
 	PT(Shader) myShader = Shader::load(Shader::ShaderLanguage::SL_GLSL, "shaders/shader.vert", "shaders/shader.frag");
 	//nodePath.set_texture(ts, bunn);
 	nodePath.set_shader_input("campos", camera.get_pos());
-	nodePath.set_shader_input("scale", LVector3f(GRID_SCALE, GRID_SCALE, GRID_SCALE));
+	nodePath.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 	nodePath.set_shader_input("target", mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, 1)));
 	nodePath.set_shader(myShader);
 	nodePath.set_transparency(TransparencyAttrib::Mode::M_alpha);
@@ -2771,7 +2772,7 @@ void GenerateTextureBuffer(int width, int height, WindowFramework * window, Node
 	NodePath mycameraNP;
 	NodePath myscene;
 
-	int texsize = 128;
+	int texsize = INTERNALRES;
 
 	mybuffer = window->get_graphics_output()->make_texture_buffer("My Buffer", texsize, texsize);
 	mytexture = mybuffer->get_texture();
