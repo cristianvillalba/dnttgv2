@@ -166,7 +166,7 @@ bool lightTrace(vec3 ro, vec3 rd)
 		
 		float distance = map(pos);
 		
-		if (distance != 0.0)
+		if (distance != 0.0 && i > 20) //prevent hitting the same object(?)
 		{
 			return true;
 		}
@@ -228,20 +228,22 @@ void main() {
 		
 		vec3 material = vec3(0.2);
 		
-		vec3 sun_dir = normalize(vec3(0.0, 1.0, 0.0));
-		//vec3 sun_dir = normalize(vec3(0.0,sin(osg_FrameTime*0.5), cos(osg_FrameTime*0.5)));
+		//vec3 sun_dir = normalize(vec3(1.0, 1.0, -1.0));
+		vec3 newn = n * vec3(-1.0, 1.0, -1.0); //flip y;
+		vec3 sun_dir = normalize(vec3(0.0,sin(osg_FrameTime*0.5), cos(osg_FrameTime*0.5)));
 		//vec3 sun_dir = normalize(vec3(sin(osg_FrameTime*0.5), cos(osg_FrameTime*0.5), 0.0));
-		float sun_diff = clamp( dot(n, sun_dir), 0.0, 1.0); //dot product with sun and normal
-		float sky_diff = clamp( 0.5 + 0.5*dot(n, vec3(0.0, 1.0, 0.0)), 0.0, 1.0); //dot product with sky(like a light coming from Y axis) and normal + bias --- change from -1 - 1 to 0 - 1 
-		float bounce_diff = clamp( 0.5 + 0.5*dot(n, vec3(0.0, -1.0, 0.0)), 0.0, 1.0);
+		float sun_diff = clamp( dot(newn, sun_dir), 0.0, 1.0); //dot product with sun and normal
+		float sky_diff = clamp( 0.5 + 0.5*dot(newn, vec3(0.0, 1.0, 0.0)), 0.0, 1.0); //dot product with sky(like a light coming from Y axis) and normal + bias --- change from -1 - 1 to 0 - 1 
+		float bounce_diff = clamp( 0.5 + 0.5*dot(newn, vec3(0.0, -1.0, 0.0)), 0.0, 1.0);
+
+		vec3 newsundir = sun_dir * vec3(-1.0, 1.0, -1.0);
 		
-		vec3 newsundir = vec3(sun_dir.x, sun_dir.y, sun_dir.z);
-		bool hitlight = lightTrace(pos + n*0.1, newsundir);
+		bool hitlight = lightTrace(pos + newn*0.1, newsundir);
 		float sun_shad = 1.0;
 		
 		if (hitlight)
 		{
-			sun_shad = 0.5;
+			sun_shad = 0.0;
 		}
 			
 		vec3 v1  = voxelToWorld(outvox + n + n.yzx);
@@ -285,6 +287,7 @@ void main() {
 		col = pow(col, vec3(0.4545)); //gamma correction
 		
 		//col = vec3(occ);
+		//col = pos/params.x;
 		
 		gl_FragColor = vec4(col, 1.0);
 	}
