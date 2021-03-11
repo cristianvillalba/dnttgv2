@@ -58,6 +58,7 @@ void refreshShadowTexture();
 
 //Headers
 void initGridFrustrum();
+void initOffsetVectors();
 void refreshGridFrustrum();
 void GenerateMainBillboard(int w, int h, WindowFramework * window, PT(Texture) mtex);
 void GenerateBillboard(int w, int h, WindowFramework * window, int index, bool useBuffer, NodePath parent, int centerx, int centery);

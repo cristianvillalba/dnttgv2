@@ -230,8 +230,8 @@ void main() {
 		
 		//vec3 sun_dir = normalize(vec3(1.0, 1.0, -1.0));
 		vec3 newn = n * vec3(-1.0, 1.0, -1.0); //flip y;
-		vec3 sun_dir = normalize(vec3(0.0,sin(osg_FrameTime*0.5), cos(osg_FrameTime*0.5)));
-		//vec3 sun_dir = normalize(vec3(sin(osg_FrameTime*0.5), cos(osg_FrameTime*0.5), 0.0));
+		//vec3 sun_dir = normalize(vec3(0.0,sin(osg_FrameTime*0.5), cos(osg_FrameTime*0.5)));
+		vec3 sun_dir = normalize(vec3(sin(osg_FrameTime*0.5), cos(osg_FrameTime*0.5), sin(osg_FrameTime*0.5)));
 		float sun_diff = clamp( dot(newn, sun_dir), 0.0, 1.0); //dot product with sun and normal
 		float sky_diff = clamp( 0.5 + 0.5*dot(newn, vec3(0.0, 1.0, 0.0)), 0.0, 1.0); //dot product with sky(like a light coming from Y axis) and normal + bias --- change from -1 - 1 to 0 - 1 
 		float bounce_diff = clamp( 0.5 + 0.5*dot(newn, vec3(0.0, -1.0, 0.0)), 0.0, 1.0);
