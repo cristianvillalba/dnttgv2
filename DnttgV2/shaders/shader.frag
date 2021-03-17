@@ -248,7 +248,7 @@ vec3 getConeSample(vec3 dir, float extent) {
 
 vec3 getRayColor(vec3 ro, vec3 rd, out float alpha)
 {
-	vec3 luminance = vec3(1.0);
+	vec3 luminance = vec3(1.5);
 	int RayDepth = 2;
     bool hit;
 
@@ -259,7 +259,8 @@ vec3 getRayColor(vec3 ro, vec3 rd, out float alpha)
 	
 	vec3 material = vec3(3.0, 2.0, 1.5);
 	vec3 direct = vec3(0.0);
-	vec3 sun_dir = normalize(vec3(sin(osg_FrameTime*0.5), cos(osg_FrameTime*0.5),0.0));
+	//vec3 sun_dir = normalize(vec3(sin(osg_FrameTime*0.5), cos(osg_FrameTime*0.5),0.0));
+	vec3 sun_dir = normalize(vec3(1.0, 1.0, 0.0));
 	
 	for (int i=0; i < RayDepth; i++) {
 		vec3 pos = voxelTrace(ro, rd, hit, n, outvox);
@@ -274,7 +275,7 @@ vec3 getRayColor(vec3 ro, vec3 rd, out float alpha)
 			ro = voxelToWorld(outvox) + n*1.0001; // new start point
 			
 			// Direct lighting
-			vec3 sunSampleDir = getConeSample(sun_dir,0.001);
+			vec3 sunSampleDir = getConeSample(sun_dir,1E-5);
 			float sunLight = dot(n, sunSampleDir);
 			
 			//bool hitsun = lightTrace(pos + n*0.1, sunSampleDir);
@@ -287,7 +288,7 @@ vec3 getRayColor(vec3 ro, vec3 rd, out float alpha)
 		}
 	}
 	
-	return vec3(0.0);
+	return direct + luminance * getBackground( rd );
 }
 
 void main() {

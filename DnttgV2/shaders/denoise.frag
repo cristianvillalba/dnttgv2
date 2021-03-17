@@ -139,6 +139,6 @@ in vec2 texcoord;
 
 void main() {
   //vec4 color = texture(p3d_Texture0, texcoord);
-  vec4 color = smartDeNoise(p3d_Texture0, texcoord, 0.25, 2.0, sin(osg_FrameTime));
+  vec4 color = smartDeNoise(p3d_Texture0, texcoord, 1.00, 2.0, 0.2);
   gl_FragColor = color.rgba;
 }
