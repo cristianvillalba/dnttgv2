@@ -1,6 +1,7 @@
 #version 130
 
 #define PI 3.141592
+#define IQ 0
 //contribution to voxel raycast:
 //https://www.shadertoy.com/view/4ds3zr
 //ambient occlusion and lighting from IQ
@@ -46,6 +47,8 @@ float sdSphere( vec3 p, float s )
 // Amanatides & Woo style voxel traversal
 //vec3 voxelSize = vec3(sin(osg_FrameTime*0.25) + 1.0); // in world space
 vec3 voxelSize = vec3(0.05*params.x);//original value
+
+vec2 seed;//seed for random
 
 
 vec3 worldToVoxel(vec3 i)
@@ -194,6 +197,99 @@ float calcOcc( in vec2 uv, vec4 va, vec4 vb, vec4 vc, vec4 vd )
            wb.x + wb.y + wb.z + wb.w;
 }
 
+vec2 rand2n() {
+    seed+=vec2(-1,1);
+	// implementation based on: lumina.sourceforge.net/Tutorials/Noise.html
+    return vec2(fract(sin(dot(seed.xy ,vec2(12.9898,78.233))) * 43758.5453),
+		fract(cos(dot(seed.xy ,vec2(4.898,7.23))) * 23421.631));
+};
+
+vec3 ortho(vec3 v) {
+    //  See : http://lolengine.net/blog/2013/09/21/picking-orthogonal-vector-combing-coconuts
+    return abs(v.x) > abs(v.z) ? vec3(-v.y, v.x, 0.0)  : vec3(0.0, -v.z, v.y);
+}
+
+vec3 getSampleBiased(vec3  dir, float power) {
+	dir = normalize(dir);
+	vec3 o1 = normalize(ortho(dir));
+	vec3 o2 = normalize(cross(dir, o1));
+	vec2 r = rand2n();
+	r.x=r.x*2.*PI;
+	r.y=pow(r.y,1.0/(power+1.0));
+	float oneminus = sqrt(1.0-r.y*r.y);
+	return cos(r.x)*oneminus*o1+sin(r.x)*oneminus*o2+r.y*dir;
+}
+
+vec3 getSample(vec3 dir) {
+	return getSampleBiased(dir,0.0); // <- unbiased!
+}
+
+vec3 getCosineWeightedSample(vec3 dir) {
+	return getSampleBiased(dir,1.0);
+}
+
+
+vec3 getBackground(vec3 dir)
+{
+	return vec3(1.0);
+}
+
+vec3 getConeSample(vec3 dir, float extent) {
+        // Formula 34 in GI Compendium
+	dir = normalize(dir);
+	vec3 o1 = normalize(ortho(dir));
+	vec3 o2 = normalize(cross(dir, o1));
+	vec2 r =  rand2n();
+	r.x=r.x*2.*PI;
+	r.y=1.0-r.y*extent;
+	float oneminus = sqrt(1.0-r.y*r.y);
+	return cos(r.x)*oneminus*o1+sin(r.x)*oneminus*o2+r.y*dir;
+}
+
+vec3 getRayColor(vec3 ro, vec3 rd, out float alpha)
+{
+	vec3 luminance = vec3(1.0);
+	int RayDepth = 2;
+    bool hit;
+
+    vec3 n; //normal
+	vec3 outvox; //hit out voxel
+	
+	seed = rd.xy + vec2(osg_FrameTime + 1.0,osg_FrameTime - 1.0);
+	
+	vec3 material = vec3(3.0, 2.0, 1.5);
+	vec3 direct = vec3(0.0);
+	vec3 sun_dir = normalize(vec3(sin(osg_FrameTime*0.5), cos(osg_FrameTime*0.5),0.0));
+	
+	for (int i=0; i < RayDepth; i++) {
+		vec3 pos = voxelTrace(ro, rd, hit, n, outvox);
+		
+		if (hit) {
+			alpha = 1.0;
+			//vec3 newn = n * vec3(-1.0, 1.0, -1.0); //flip y;
+			//rd = getSample(n); // new direction (towards light)
+			rd = getCosineWeightedSample(n); // new direction (towards light)
+			//luminance *= material*2.0*0.125*dot(rd,newn); //0.5 is the albedo
+			luminance *= material*0.125;
+			ro = voxelToWorld(outvox) + n*1.0001; // new start point
+			
+			// Direct lighting
+			vec3 sunSampleDir = getConeSample(sun_dir,0.001);
+			float sunLight = dot(n, sunSampleDir);
+			
+			//bool hitsun = lightTrace(pos + n*0.1, sunSampleDir);
+			pos = voxelTrace(voxelToWorld(outvox) + n*1.0001, sunSampleDir, hit, n, outvox);
+			if (sunLight>0.0 && !hit) {
+				direct += luminance*sunLight;
+			}
+		}else{
+			return direct + luminance * getBackground( rd );
+		}
+	}
+	
+	return vec3(0.0);
+}
+
 void main() {
   
 	// pixel coordinates
@@ -214,87 +310,108 @@ void main() {
 	// create view ray
 	vec3 rd = normalize( p.x*uu + p.y*vv + 0.75*ww );
 
-	//raycast trace ray
-	vec3 col = vec3(1.0);
-    bool hit;
-
-    vec3 n; //normal
-	vec3 outvox; //hit out voxel
-    vec3 pos = voxelTrace(ro, rd, hit, n, outvox);
-	
-	if (hit)
-	{		
-		vec3 uvw = pos - voxelToWorld(outvox);
+	if (IQ == 0)
+	{
+		//raycast trace ray
+		int RAYSAMPLES = 2;
+		float alpha = 0.0;
+		vec3 col = vec3(0.0);
 		
-		vec3 material = vec3(0.2);
-		
-		//vec3 sun_dir = normalize(vec3(1.0, 1.0, -1.0));
-		vec3 newn = n * vec3(-1.0, 1.0, -1.0); //flip y;
-		//vec3 sun_dir = normalize(vec3(0.0,sin(osg_FrameTime*0.5), cos(osg_FrameTime*0.5)));
-		vec3 sun_dir = normalize(vec3(sin(osg_FrameTime*0.5), cos(osg_FrameTime*0.5), sin(osg_FrameTime*0.5)));
-		float sun_diff = clamp( dot(newn, sun_dir), 0.0, 1.0); //dot product with sun and normal
-		float sky_diff = clamp( 0.5 + 0.5*dot(newn, vec3(0.0, 1.0, 0.0)), 0.0, 1.0); //dot product with sky(like a light coming from Y axis) and normal + bias --- change from -1 - 1 to 0 - 1 
-		float bounce_diff = clamp( 0.5 + 0.5*dot(newn, vec3(0.0, -1.0, 0.0)), 0.0, 1.0);
-
-		vec3 newsundir = sun_dir * vec3(-1.0, 1.0, -1.0);
-		
-		bool hitlight = lightTrace(pos + newn*0.1, newsundir);
-		float sun_shad = 1.0;
-		
-		if (hitlight)
+		for (int i = 0; i < RAYSAMPLES; i++)
 		{
-			sun_shad = 0.0;
+			//seed = p.xy * (float(i) + 1.0);		
+			col += getRayColor(ro, rd, alpha);
 		}
-			
-		vec3 v1  = voxelToWorld(outvox + n + n.yzx);
-	    vec3 v2  = voxelToWorld(outvox + n - n.yzx);
-	    vec3 v3  = voxelToWorld(outvox + n + n.zxy);
-	    vec3 v4  = voxelToWorld(outvox + n - n.zxy);
-		vec3 v5  = voxelToWorld(outvox + n + n.yzx + n.zxy);
-        vec3 v6  = voxelToWorld(outvox + n - n.yzx + n.zxy);
-	    vec3 v7  = voxelToWorld(outvox + n - n.yzx - n.zxy);
-	    vec3 v8  = voxelToWorld(outvox + n + n.yzx - n.zxy);
-	    vec3 v9  = voxelToWorld(outvox + n.yzx);
-	    vec3 v10 = voxelToWorld(outvox - n.yzx);
-	    vec3 v11 = voxelToWorld(outvox + n.zxy);
-	    vec3 v12 = voxelToWorld(outvox - n.zxy);
- 	    vec3 v13 = voxelToWorld(outvox + n.yzx + n.zxy); 
-	    vec3 v14 = voxelToWorld(outvox - n.yzx + n.zxy);
-	    vec3 v15 = voxelToWorld(outvox - n.yzx - n.zxy);
-	    vec3 v16 = voxelToWorld(outvox + n.yzx - n.zxy);
 
-		vec4 vc = vec4( map(v1),  map(v2),  map(v3),  map(v4)  );
-	    vec4 vd = vec4( map(v5),  map(v6),  map(v7),  map(v8)  );
-	    vec4 va = vec4( map(v9),  map(v10), map(v11), map(v12) );
-	    vec4 vb = vec4( map(v13), map(v14), map(v15), map(v16) );
+		col = col / float(RAYSAMPLES);	
 		
-		vec2 uv = vec2( dot(n.yzx, uvw), dot(n.zxy, uvw) );
-		
-		float occ = 1.0;
-        
-		// ambient occlusion
-        occ = calcOcc( uv, va, vb, vc, vd );
-        occ = 1.0 - occ/16.0;
-        occ = occ*occ;
-        occ = occ*occ;
-		
-		col = material*vec3(3.0, 2.0, 1.5) * sun_diff*sun_shad;
-		col += material*vec3(0.45, 0.86, 0.89) * sky_diff;
-		col += material*vec3(0.7, 0.3, 0.2) * bounce_diff;
-		
-		col *= occ;//ambient occlusion
-		
-		col = pow(col, vec3(0.4545)); //gamma correction
-		
-		//col = vec3(occ);
-		//col = pos/params.x;
-		
-		gl_FragColor = vec4(col, 1.0);
+		gl_FragColor = vec4(col, alpha); // final ray color + alpha channel
 	}
 	else
 	{
-		gl_FragColor = vec4(1, 1, 1, 0);
-	}
+		//IQ lighting 
+		bool hit;
 
+		vec3 n; //normal
+		vec3 outvox; //hit out voxel
+		vec3 col = vec3(0.0);
 	
+		vec3 pos = voxelTrace(ro, rd, hit, n, outvox);
+		
+		if (hit)
+		{		
+			vec3 uvw = pos - voxelToWorld(outvox);
+			
+			vec3 material = vec3(0.2);
+			
+			//vec3 sun_dir = normalize(vec3(1.0, 1.0, -1.0));
+			vec3 newn = n * vec3(-1.0, 1.0, -1.0); //flip y;
+			//vec3 sun_dir = normalize(vec3(0.0,sin(osg_FrameTime*0.5), cos(osg_FrameTime*0.5)));
+			vec3 sun_dir = normalize(vec3(sin(osg_FrameTime*0.5), cos(osg_FrameTime*0.5), sin(osg_FrameTime*0.5)));
+			float sun_diff = clamp( dot(newn, sun_dir), 0.0, 1.0); //dot product with sun and normal
+			float sky_diff = clamp( 0.5 + 0.5*dot(newn, vec3(0.0, 1.0, 0.0)), 0.0, 1.0); //dot product with sky(like a light coming from Y axis) and normal + bias --- change from -1 - 1 to 0 - 1 
+			float bounce_diff = clamp( 0.5 + 0.5*dot(newn, vec3(0.0, -1.0, 0.0)), 0.0, 1.0);
+
+			vec3 newsundir = sun_dir * vec3(-1.0, 1.0, -1.0);
+			
+			bool hitlight = lightTrace(pos + newn*0.1, newsundir);
+			float sun_shad = 1.0;
+			
+			if (hitlight)
+			{
+				sun_shad = 0.0;
+			}
+				
+			vec3 v1  = voxelToWorld(outvox + n + n.yzx);
+			vec3 v2  = voxelToWorld(outvox + n - n.yzx);
+			vec3 v3  = voxelToWorld(outvox + n + n.zxy);
+			vec3 v4  = voxelToWorld(outvox + n - n.zxy);
+			vec3 v5  = voxelToWorld(outvox + n + n.yzx + n.zxy);
+			vec3 v6  = voxelToWorld(outvox + n - n.yzx + n.zxy);
+			vec3 v7  = voxelToWorld(outvox + n - n.yzx - n.zxy);
+			vec3 v8  = voxelToWorld(outvox + n + n.yzx - n.zxy);
+			vec3 v9  = voxelToWorld(outvox + n.yzx);
+			vec3 v10 = voxelToWorld(outvox - n.yzx);
+			vec3 v11 = voxelToWorld(outvox + n.zxy);
+			vec3 v12 = voxelToWorld(outvox - n.zxy);
+			vec3 v13 = voxelToWorld(outvox + n.yzx + n.zxy); 
+			vec3 v14 = voxelToWorld(outvox - n.yzx + n.zxy);
+			vec3 v15 = voxelToWorld(outvox - n.yzx - n.zxy);
+			vec3 v16 = voxelToWorld(outvox + n.yzx - n.zxy);
+
+			vec4 vc = vec4( map(v1),  map(v2),  map(v3),  map(v4)  );
+			vec4 vd = vec4( map(v5),  map(v6),  map(v7),  map(v8)  );
+			vec4 va = vec4( map(v9),  map(v10), map(v11), map(v12) );
+			vec4 vb = vec4( map(v13), map(v14), map(v15), map(v16) );
+			
+			vec2 uv = vec2( dot(n.yzx, uvw), dot(n.zxy, uvw) );
+			
+			float occ = 1.0;
+			
+			// ambient occlusion
+			occ = calcOcc( uv, va, vb, vc, vd );
+			occ = 1.0 - occ/16.0;
+			occ = occ*occ;
+			occ = occ*occ;
+			
+			col = material*vec3(3.0, 2.0, 1.5) * sun_diff*sun_shad;
+			col += material*vec3(0.45, 0.86, 0.89) * sky_diff;
+			col += material*vec3(0.7, 0.3, 0.2) * bounce_diff;
+			
+			col *= occ;//ambient occlusion
+			
+			col = pow(col, vec3(0.4545)); //gamma correction
+			
+			//col = vec3(occ);
+			//col = pos/params.x;
+			
+			gl_FragColor = vec4(col, 1.0);
+		}
+		else
+		{
+			gl_FragColor = vec4(1, 1, 1, 0);
+		} 
+		
+		//* IQ lighting 
+	}	
 }

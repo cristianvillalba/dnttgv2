@@ -36,6 +36,7 @@
 #define BOUNDINGBOX 1 //bounding box of 3d texture
 #define TEXTURESIZE 32 //3d texture resolution
 #define GRIDEXTENSION 1 //how many side voxels this will render
+#define DENOISE 1 //denoising shader as an image post processing
 
 using std::chrono::duration;
 using std::chrono::duration_cast;
@@ -1608,6 +1609,13 @@ void GenerateMainBillboard(int width, int height, WindowFramework * window, PT(T
 	NodePath nodePath = window->get_pixel_2d().attach_new_node(node);
 
 	nodePath.set_texture(texture);
+
+	if (DENOISE == 1)
+	{
+		PT(Shader) denoise = Shader::load(Shader::ShaderLanguage::SL_GLSL, "shaders/denoise.vert", "shaders/denoise.frag");
+
+		nodePath.set_shader(denoise);
+	}
 }
 
 void InitShader(int index, NodePath nodePath)
