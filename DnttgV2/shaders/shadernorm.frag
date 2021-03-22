@@ -268,7 +268,7 @@ vec3 getRayColor(vec3 ro, vec3 rd, out float alpha)
 	//vec3 sun_dir = normalize(vec3(sin(osg_FrameTime*0.5), cos(osg_FrameTime*0.5),0.0));
 	vec3 sun_dir = normalize(vec3(1.0, 1.0, 0.0));
 	
-	/* 
+	
 	//Just render normals
 	vec3 pos = voxelTrace(ro, rd, hit, n, outvox);
 		
@@ -279,9 +279,9 @@ vec3 getRayColor(vec3 ro, vec3 rd, out float alpha)
 	}
 
 	return vec3(0.0);
-	 */
+	
 	 
-	for (int i=0; i < RayDepth; i++) {
+	/* for (int i=0; i < RayDepth; i++) {
 		vec3 pos = voxelTrace(ro, rd, hit, n, outvox);
 		
 		if (hit) {
@@ -304,7 +304,7 @@ vec3 getRayColor(vec3 ro, vec3 rd, out float alpha)
 		}
 	}
 	
-	return direct + luminance * getBackground( rd );
+	return direct + luminance * getBackground( rd ); */
 }
 
 void main() {
@@ -333,23 +333,18 @@ void main() {
 		simpleseed = ro.x + ro.y * 3.43121412313;
 		
 		//raycast trace ray
-		int RAYSAMPLES = 2;
+		int RAYSAMPLES = 1;
 		float alpha = 0.0;
 		vec3 col = vec3(0.0);
 		
 		for (int i = 0; i < RAYSAMPLES; i++)
 		{	
 			vec2 rpof = 4.*(hash2(simpleseed)-vec2(0.5)) / params.z;
-			rd = normalize( (p.x+rpof.x)*uu + (p.y+rpof.y)*vv + 0.75*ww );	
+			rd = normalize( (p.x+rpof.x)*uu + (p.y+rpof.y)*vv + 0.75*ww );
 			col += getRayColor(ro, rd, alpha);
 		}
 
-		col = col / float(RAYSAMPLES);
-
-		if ((col.x > 0.5) && (col.y > 0.5) && (col.z > 0.5)) //filter whites
-		{
-			alpha = 0.0;
-		}
+		col = col / float(RAYSAMPLES);	
 		
 		gl_FragColor = vec4(col, alpha); // final ray color + alpha channel
 	}
@@ -370,9 +365,10 @@ void main() {
 			
 			vec3 material = vec3(0.2);
 			
-			vec3 sun_dir = normalize(vec3(1.0, 1.0, 0.0));
+			//vec3 sun_dir = normalize(vec3(1.0, 1.0, -1.0));
 			vec3 newn = n * vec3(-1.0, 1.0, -1.0); //flip y;
 			//vec3 sun_dir = normalize(vec3(0.0,sin(osg_FrameTime*0.5), cos(osg_FrameTime*0.5)));
+			vec3 sun_dir = normalize(vec3(sin(osg_FrameTime*0.5), cos(osg_FrameTime*0.5), sin(osg_FrameTime*0.5)));
 			float sun_diff = clamp( dot(newn, sun_dir), 0.0, 1.0); //dot product with sun and normal
 			float sky_diff = clamp( 0.5 + 0.5*dot(newn, vec3(0.0, 1.0, 0.0)), 0.0, 1.0); //dot product with sky(like a light coming from Y axis) and normal + bias --- change from -1 - 1 to 0 - 1 
 			float bounce_diff = clamp( 0.5 + 0.5*dot(newn, vec3(0.0, -1.0, 0.0)), 0.0, 1.0);

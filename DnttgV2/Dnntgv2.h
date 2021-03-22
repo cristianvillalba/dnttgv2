@@ -19,6 +19,7 @@ typedef std::tuple<int, int, int, int> RefreshTuple;
 struct Zorder {
 	LVector3f pos;
 	NodePath quad;
+	NodePath quadNorm;
 	int index;
 };
 
@@ -61,9 +62,10 @@ void initGridFrustrum();
 void initOffsetVectors();
 void refreshGridFrustrum();
 void GenerateMainBillboard(int w, int h, WindowFramework * window, PT(Texture) mtex);
-void GenerateBillboard(int w, int h, WindowFramework * window, int index, bool useBuffer, NodePath parent, int centerx, int centery);
+void GeneratePrePassBillboard(int w, int h, WindowFramework * window, NodePath parent, int centerx, int centery);
+void GenerateBillboard(int w, int h, WindowFramework * window, int index, bool useBuffer, NodePath parent, int centerx, int centery, int type);
 void GenerateTextureBuffer(int w, int h, WindowFramework * window, NodePath s);
-void InitShader(int index, NodePath node);
+void InitShader(int index, NodePath node, int type);
 void CopyTexture(PT(Texture) origin, PT(Texture) destination);
 void CopyAndRefreshTexture(CopyTuple params, GridFrustrum cache);
 void CleanTexture(PT(Texture) origin);
