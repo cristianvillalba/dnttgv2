@@ -36,7 +36,7 @@
 #define BOUNDINGBOX 1 //bounding box of 3d texture
 #define TEXTURESIZE 32 //3d texture resolution
 #define GRIDEXTENSION 1 //how many side voxels this will render
-#define DENOISE 1 //denoising shader as an image post processing
+#define DENOISE 0 //denoising shader as an image post processing
 
 using std::chrono::duration;
 using std::chrono::duration_cast;
@@ -671,6 +671,8 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 	double angleradians = angledegrees * (3.14 / 180.0);
 	//camera.set_pos(1 * sin(angleradians), 0, 1*cos(angleradians) + CAM_z);//orbit around center
 
+	float offsetgrid = GRID_SCALE / 2.0 / 10.0;
+
 	if (FORWARD)
 	{
 		LVector3f fw = mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, -1.0));
@@ -773,42 +775,42 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 	float nCAM_y = CAM_y - VELZ * globalClock->get_dt();
 	ANGLEDEGREES = ANGLEDEGREES + SPINVEL * globalClock->get_dt();
 
-	if (nCAM_x > 0.5 * GRID_SCALE || nCAM_x < -0.5 * GRID_SCALE ||
-		nCAM_y > 0.5 * GRID_SCALE || nCAM_y < -0.5 * GRID_SCALE ||
-		nCAM_z > 0.5 * GRID_SCALE || nCAM_z < -0.5 * GRID_SCALE
+	if (nCAM_x > 0.5 * (GRID_SCALE + offsetgrid) || nCAM_x < -0.5 * (GRID_SCALE + offsetgrid) ||
+		nCAM_y > 0.5 * (GRID_SCALE + offsetgrid) || nCAM_y < -0.5 * (GRID_SCALE + offsetgrid) ||
+		nCAM_z > 0.5 * (GRID_SCALE + offsetgrid) || nCAM_z < -0.5 * (GRID_SCALE + offsetgrid)
 		)
 	{
-		if (nCAM_x > 0.5 * GRID_SCALE)
+		if (nCAM_x > 0.5 * (GRID_SCALE + offsetgrid))
 		{
 			GRID_x--;
-			nCAM_x = -0.5 * GRID_SCALE + abs(0.5 * GRID_SCALE - nCAM_x);
+			nCAM_x = -0.5 * (GRID_SCALE + offsetgrid) + abs(0.5 * (GRID_SCALE + offsetgrid) - nCAM_x);
 		}
-		else if (nCAM_x < -0.5 * GRID_SCALE)
+		else if (nCAM_x < -0.5 * (GRID_SCALE + offsetgrid))
 		{
 			GRID_x++;
-			nCAM_x = 0.5 * GRID_SCALE - abs(-0.5 * GRID_SCALE - nCAM_x);
+			nCAM_x = 0.5 * (GRID_SCALE + offsetgrid) - abs(-0.5 * (GRID_SCALE + offsetgrid) - nCAM_x);
 		}
 
-		if (nCAM_y > 0.5 * GRID_SCALE)
+		if (nCAM_y > 0.5 * (GRID_SCALE + offsetgrid))
 		{
 			GRID_y--;
-			nCAM_y = -0.5 * GRID_SCALE + abs(0.5 * GRID_SCALE - nCAM_y);
+			nCAM_y = -0.5 * (GRID_SCALE + offsetgrid) + abs(0.5 * (GRID_SCALE + offsetgrid) - nCAM_y);
 		}
-		else if (nCAM_y < -0.5 * GRID_SCALE)
+		else if (nCAM_y < -0.5 * (GRID_SCALE + offsetgrid))
 		{
 			GRID_y++;
-			nCAM_y = 0.5 * GRID_SCALE + abs(-0.5 * GRID_SCALE - nCAM_y);
+			nCAM_y = 0.5 * (GRID_SCALE + offsetgrid) + abs(-0.5 * (GRID_SCALE + offsetgrid) - nCAM_y);
 		}
 
-		if (nCAM_z > 0.5 * GRID_SCALE)
+		if (nCAM_z > 0.5 * (GRID_SCALE + offsetgrid))
 		{
 			GRID_z--;
-			nCAM_z = -0.5 * GRID_SCALE + abs(0.5 * GRID_SCALE - nCAM_z);
+			nCAM_z = -0.5 * (GRID_SCALE + offsetgrid) + abs(0.5 * (GRID_SCALE + offsetgrid) - nCAM_z);
 		}
-		else if (nCAM_z < -0.5 * GRID_SCALE)
+		else if (nCAM_z < -0.5 * (GRID_SCALE + offsetgrid))
 		{
 			GRID_z++;
-			nCAM_z = 0.5 * GRID_SCALE - abs(-0.5 * GRID_SCALE - nCAM_z);
+			nCAM_z = 0.5 * (GRID_SCALE + offsetgrid) - abs(-0.5 * (GRID_SCALE + offsetgrid) - nCAM_z);
 		}
 
 		if (!*pREFRESHGRID)
@@ -819,8 +821,6 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 		}
 	}
 
-	//CAM_x = nCAM_x  - floor(nCAM_x + 0.5); //keep cam always in middle range -0.5 0.5
-	//CAM_z = nCAM_z  - floor(nCAM_z + 0.5); //keep cam always in middle range -0.5 0.5
 	CAM_x = nCAM_x;
 	CAM_z = nCAM_z;
 	CAM_y = nCAM_y;
@@ -835,20 +835,23 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 	//update all quads
 	
 	int z = 0;
+
+
+	//std::cout << "sin value: " << fff << "\n";
 	for (int w = 0; w < ((GRIDEXTENSION * 2) + 1); w++)
 	{
 		for (int v = 0; v < ((GRIDEXTENSION * 2) + 1); v++)
 		{
 			for (int u = 0; u < ((GRIDEXTENSION * 2) + 1); u++)
 			{
-				mainQuad[z].set_shader_input("campos", camera.get_pos() - LVector3f(offsetvectorx[u], offsetvectory[v], offsetvectorz[w]) * GRID_SCALE);
-				mainQuad[z].set_shader_input("target", lookAtDirection - LVector3f(offsetvectorx[u], offsetvectory[v], offsetvectorz[w]) * GRID_SCALE);
+				mainQuad[z].set_shader_input("campos", camera.get_pos() - LVector3f(offsetvectorx[u], offsetvectory[v], offsetvectorz[w]) *( GRID_SCALE + offsetgrid));
+				mainQuad[z].set_shader_input("target", lookAtDirection - LVector3f(offsetvectorx[u], offsetvectory[v], offsetvectorz[w]) *( GRID_SCALE + offsetgrid));
 				mainQuad[z].set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 
 				if (DENOISE == 1)
 				{
-					mainQuadNorm[z].set_shader_input("campos", camera.get_pos() - LVector3f(offsetvectorx[u], offsetvectory[v], offsetvectorz[w]) * GRID_SCALE);
-					mainQuadNorm[z].set_shader_input("target", lookAtDirection - LVector3f(offsetvectorx[u], offsetvectory[v], offsetvectorz[w]) * GRID_SCALE);
+					mainQuadNorm[z].set_shader_input("campos", camera.get_pos() - LVector3f(offsetvectorx[u], offsetvectory[v], offsetvectorz[w]) * (GRID_SCALE + offsetgrid));
+					mainQuadNorm[z].set_shader_input("target", lookAtDirection - LVector3f(offsetvectorx[u], offsetvectory[v], offsetvectorz[w]) * (GRID_SCALE + offsetgrid));
 					mainQuadNorm[z].set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 				}
 
