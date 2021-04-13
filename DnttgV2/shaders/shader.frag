@@ -66,99 +66,69 @@ vec3 voxelToWorld(vec3 i)
 vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal, out vec3 outvox)
 {
     const int maxSteps = 64;
-    const float isoValue = 0.0;
-	
-	float rvalue = 0.0;
-	float gvalue = 0.0;
-	float bvalue = 0.0;
-
     vec3 voxel = worldToVoxel(ro);
     vec3 step = sign(rd);
-
-    vec3 nearestVoxel = voxel + vec3(rd.x > 0.0, rd.y > 0.0, rd.z > 0.0);
+	vec3 nearestVoxel = voxel + vec3(rd.x > 0.0, rd.y > 0.0, rd.z > 0.0);
     vec3 tMax = (voxelToWorld(nearestVoxel) - ro) / rd;
     vec3 tDelta = voxelSize / abs(rd);
-
-    vec3 hitVoxel = voxel;
+    vec3 hitVoxel = voxel;;
 	
     hit = false;
-    float hitT = 0.0;
-    for(int i=0; i<maxSteps; i++) {
-        float d = map(voxelToWorld(voxel));        
-        if (d != isoValue && !hit) {
-            hit = true;
-	    	hitVoxel = voxel;
-			outvox = hitVoxel;
-            break;
-        }
-
-        if (tMax.x < tMax.y && tMax.x < tMax.z) { 
-            voxel.x += step.x;
-            tMax.x += tDelta.x;
-			if (!hit) {
-				
-				if (-step.x == -1){
-					rvalue = -1.0;
-					gvalue = 0.0;
-					bvalue = 0.0;
-				}
-				else 
-				{
-					rvalue = 1.0;
-					gvalue = 0.0;
-					bvalue = 0.0;
-				}
-				
-				hitT = tMax.x;
-			}
-        } else if (tMax.y < tMax.z) {
-            voxel.y += step.y;
-            tMax.y += tDelta.y;
-			if (!hit) {
-				
-				if (-step.y == -1){
-					rvalue = 0.0;
-					gvalue = -1.0;
-					bvalue = 0.0;
-				}
-				else 
-				{
-					rvalue = 0.0;
-					gvalue = 1.0;
-					bvalue = 0.0;
-				}
-				
-				hitT = tMax.y;
-			}
-        } else {
-            voxel.z += step.z;
-            tMax.z += tDelta.z;
-			if (!hit) {
-				
-				if (-step.z == -1){
-					rvalue = 0.0;
-					gvalue = 0.0;
-					bvalue = -1.0;
-				}
-				else 
-				{
-					rvalue = 0.0;
-					gvalue = 0.0;
-					bvalue = 1.0;
-				}
-				
-				hitT = tMax.z;
-			}
-        }
-         
-    }
 	
-	hitNormal = vec3(rvalue, gvalue, bvalue); //with black colors
-
-	//outvox = voxelToWorld(hitVoxel);
+    float hitT = 0.0;
+    for(int i=0; i < maxSteps; i++)
+	{
+		if (!hit)
+		{
+			float d = map(voxelToWorld(voxel));        
+			if (d != 0.0 && !hit)
+			{
+				hit = true;
+				hitVoxel = voxel;
+                //break;
+			}
+			bool c1 = tMax.x < tMax.y;
+			bool c2 = tMax.x < tMax.z;
+			bool c3 = tMax.y < tMax.z;
+			if (c1 && c2) 
+			{ 
+				if (!hit) 
+				{
+					hitNormal = vec3(-step.x, 0.0, 0.0);
+					hitT = tMax.x;
+				}
+				voxel.x += step.x;
+				tMax.x += tDelta.x;
+	
+			} else if (c3 && !c1) 
+			{
+				if (!hit) 
+				{
+					hitNormal = vec3(0.0, -step.y, 0.0);	
+					hitT = tMax.y;
+				}
+				voxel.y += step.y;
+				tMax.y += tDelta.y;
+			} else
+			{
+				if (!hit) 
+				{
+					hitNormal = vec3(0.0, 0.0, -step.z);		
+					hitT = tMax.z;
+				}
+				voxel.z += step.z;
+				tMax.z += tDelta.z;
+			}
+		}
+    }
+	if (hit && (hitVoxel.x > 27.0 || hitVoxel.x < -27.0 || hitVoxel.z < -27.0 || hitVoxel.z > 27.0))
+	{
+		hit = false;
+		return vec3(20.0);
+	}
+	
 	outvox = hitVoxel;
-    //return voxelToWorld(hitVoxel);
-	return ro + hitT*rd;
+	return ro + hitT * rd;
 }
 
 bool lightTrace(vec3 ro, vec3 rd)
@@ -237,7 +207,7 @@ vec3 getCosineWeightedSample(vec3 dir) {
 
 vec3 getBackground(vec3 dir)
 {
-	return vec3(1.0);
+	return vec3(0.95);
 }
 
 vec3 getConeSample(vec3 dir, float extent) {
@@ -252,69 +222,61 @@ vec3 getConeSample(vec3 dir, float extent) {
 	return cos(r.x)*oneminus*o1+sin(r.x)*oneminus*o2+r.y*dir;
 }
 
-vec3 getRayColor(vec3 ro, vec3 rd, out float alpha)
+vec3 getRayColor(vec3 ro, vec3 rd, out float alpha, float i)
 {
-	vec3 luminance = vec3(1.5);
-	int RayDepth = 2;
+	vec3 color = vec3(1.0, 1.0, 1.0);
+    vec3 directLight = vec3(0.0, 0.0, 0.0);
+	vec3 material = vec3(0.35, 0.35, 0.0);
+    float Albedo = 0.4;
+    int iterations = 0;
+    int object = 0;
+    
+    vec3 rayOrigin = ro;
+    vec3 rayDirection = rd;
+    
+    seed = rd.xy * (osg_FrameTime + i + 1.0);
+    
     bool hit;
-
-    vec3 n; //normal
-	vec3 outvox; //hit out voxel
-	
-	seed = rd.xy + vec2(osg_FrameTime + 1.0,osg_FrameTime - 1.0);
-	
-	vec3 material = vec3(3.0, 2.0, 1.5);
-	vec3 direct = vec3(0.0);
-	//vec3 sun_dir = normalize(vec3(sin(osg_FrameTime*0.5), cos(osg_FrameTime*0.5),0.0));
-	vec3 sun_dir = normalize(vec3(1.0, 1.0, 0.0));
-	
-	/* 
-	//Just render normals
-	vec3 pos = voxelTrace(ro, rd, hit, n, outvox);
-		
-	if (hit) {
-		alpha = 1.0;
-		
-		return (n+vec3(1.,1.,1.))/2.; //with all colors;
-	}
-
-	return vec3(0.0);
-	 */
-	 
-	for (int i=0; i < RayDepth; i++) {
-		vec3 pos = voxelTrace(ro, rd, hit, n, outvox);
-		
-		if (hit) {
+    vec3 n;
+    vec3 pos;
+	vec3 outvox;
+    vec3 sun_dir = normalize(vec3(0.0, 1.0, 0.0));
+	//vec3 sun_dir = normalize(vec3(sin(osg_FrameTime), cos(osg_FrameTime), 0.0));
+    
+    for (int i = 0; i < 2; i++) {
+		pos = voxelTrace(rayOrigin, rayDirection, hit, n, outvox);
+        
+        if (hit) { 
 			alpha = 1.0;
-			//rd = getSample(n); // new direction (towards light)
-			rd = getCosineWeightedSample(n); // new direction (towards light)
-			luminance *= material*0.125; //0.125 is albedo
-			ro = voxelToWorld(outvox) + n*1.0001; // new start point
-			
-			// Direct lighting
-			vec3 sunSampleDir = getConeSample(sun_dir,1E-5);
+			vec3 newDirection = normalize(getCosineWeightedSample(n));
+            //vec3 newDirection = normalize(getSample(n));
+
+            color *= material * Albedo * 2.0;
+            
+            rayOrigin = pos + n *0.001* 4.0;
+            rayDirection = newDirection;
+              
+			vec3 sunSampleDir = getConeSample(sun_dir,0.0001);
 			float sunLight = dot(n, sunSampleDir);
 			
-			pos = voxelTrace(voxelToWorld(outvox) + n*1.0001, sunSampleDir, hit, n, outvox);
+			pos = voxelTrace(rayOrigin, sunSampleDir, hit, n, outvox);
 			if (sunLight>0.0 && !hit) {
-				direct += luminance*sunLight;
+				directLight += color*sunLight;
 			}
-		}else{
-			return direct + luminance * getBackground( rd );
-		}
-	}
-	
-	return direct + luminance * getBackground( rd );
+            
+        }
+        else {
+            return directLight + color * getBackground(rayDirection);
+        }
+    }
+    
+    return directLight + color * getBackground(rayDirection);
 }
 
 void main() {
-  
 	// pixel coordinates
 	vec2 p = vec2((2.0*gl_FragCoord.x-params.z)/params.z, (2.0*gl_FragCoord.y-params.z)/params.z); //this will change range to [-1...1]
-	
-	// camera movement	
-	float an = 0.2*osg_FrameTime;
-	
+		
 	float OFFSET = 0.5 * params.x;
 	
 	vec3 ro = vec3( campos.x + OFFSET, campos.y -OFFSET, campos.z + OFFSET);
@@ -339,9 +301,10 @@ void main() {
 		
 		for (int i = 0; i < RAYSAMPLES; i++)
 		{	
-			vec2 rpof = 4.*(hash2(simpleseed)-vec2(0.5)) / params.z;
+			//vec2 rpof = 4.*(hash2(simpleseed)-vec2(0.5)) / params.z; //this will make visible gaps between billboards
+			vec2 rpof;
 			rd = normalize( (p.x+rpof.x)*uu + (p.y+rpof.y)*vv + 0.75*ww );	
-			col += getRayColor(ro, rd, alpha);
+			col += getRayColor(ro, rd, alpha, float(i));
 		}
 
 		col = col / float(RAYSAMPLES);
@@ -351,6 +314,8 @@ void main() {
 			alpha = 0.0;
 		}
 		
+		col = pow(col, vec3(0.4545)); //gamma correction
+		
 		gl_FragColor = vec4(col, alpha); // final ray color + alpha channel
 	}
 	else
@@ -359,9 +324,8 @@ void main() {
 		bool hit;
 
 		vec3 n; //normal
-		vec3 outvox; //hit out voxel
 		vec3 col = vec3(0.0);
-	
+		vec3 outvox;
 		vec3 pos = voxelTrace(ro, rd, hit, n, outvox);
 		
 		if (hit)
@@ -428,7 +392,6 @@ void main() {
 			col = pow(col, vec3(0.4545)); //gamma correction
 			
 			//col = vec3(occ);
-			//col = pos/params.x;
 			
 			gl_FragColor = vec4(col, 1.0);
 		}

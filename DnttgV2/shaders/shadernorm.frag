@@ -339,7 +339,8 @@ void main() {
 		
 		for (int i = 0; i < RAYSAMPLES; i++)
 		{	
-			vec2 rpof = 4.*(hash2(simpleseed)-vec2(0.5)) / params.z;
+			//vec2 rpof = 4.*(hash2(simpleseed)-vec2(0.5)) / params.z; //this will make some edges visible in billboards
+			vec2 rpof;
 			rd = normalize( (p.x+rpof.x)*uu + (p.y+rpof.y)*vv + 0.75*ww );
 			col += getRayColor(ro, rd, alpha);
 		}

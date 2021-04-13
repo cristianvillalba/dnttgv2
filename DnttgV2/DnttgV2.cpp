@@ -26,12 +26,14 @@
 #include "VDBGrid.h"
 #include "FilterManager.h"
 
+#include "antialiasAttrib.h"
+
 #include "Dnntgv2.h"
 
 
 #define WIDTH 200  //for bunny - for first raycaster
 #define HEIGHT 200 //for bunny - for first raycaster
-#define INTERNALRES 128 //internal texture resolution
+#define INTERNALRES 256 //internal texture resolution
 #define BUNNY 1 //old vs new raycaster
 #define BOUNDINGBOX 1 //bounding box of 3d texture
 #define TEXTURESIZE 32 //3d texture resolution
@@ -2017,6 +2019,7 @@ void MakeShadertoy(int argc, char *argv[])
 	int height = wp.get_y_size();
 
 	window->enable_keyboard();
+	window->get_render().set_antialias(AntialiasAttrib::M_none);
 
 	framework.define_key("arrow_up", "advance cam", advanceCamera, nullptr);
 	framework.define_key("arrow_up-up", "advance cam", advanceCameraUp, nullptr);
