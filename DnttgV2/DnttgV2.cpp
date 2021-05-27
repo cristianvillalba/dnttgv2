@@ -28,6 +28,13 @@
 
 #include "antialiasAttrib.h"
 
+#include "glgsg.h"
+#include "gl/GL.h"
+#include "gl/GLU.h"
+#include "gl/glext.h"
+
+
+
 #include "Dnntgv2.h"
 
 
@@ -67,10 +74,13 @@ PT(Texture) bunn;
 //Empty 3d texture;
 PT(Texture) emptyTexture;
 
-NodePath mainQuad[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
-NodePath mainQuadNorm[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
+//to split the 3d texture - SLOW as HELL
+//NodePath mainQuad[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
+//NodePath mainQuadNorm[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
+NodePath mainQuad[1];
+NodePath mainQuadNorm[1];
 
-PT(Texture) gridTextureArray[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
+unsigned char * gridTextureArray[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
 LVector3f gridCoordOffset[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
 
 float offsetvectorx[((GRIDEXTENSION * 2) + 1)];
@@ -112,6 +122,7 @@ float VELX = 0.0;
 float VELY = 0.0;
 float VELZ = 0.0;
 float ACCELERATION = 20.0;
+float FRICTION = 0.2;
 float SPINVEL = 0;
 float ANGLEDEGREES = 0;
 
@@ -155,7 +166,23 @@ CopyArgs* _copytasks[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDE
 
 //---Support structures
 
-//
+
+//---OpenGLExtensions
+void *GetAnyGLFuncAddress(const char *name)
+{
+	void *p = (void *)wglGetProcAddress(name);
+	if (p == 0 ||
+		(p == (void*)0x1) || (p == (void*)0x2) || (p == (void*)0x3) ||
+		(p == (void*)-1))
+	{
+		HMODULE module = LoadLibraryA("opengl32.dll");
+		p = (void *)GetProcAddress(module, name);
+	}
+
+	return p;
+}
+
+
 PT(Texture) rendertexture01;
 PT(Texture) rendertexture02;
 PT(Texture) rendertexture03;
@@ -276,6 +303,7 @@ void upCamera(const Event* eventPtr, void* dataPtr)
 	if (!UP)
 	{
 		UP = true;
+		callOpenGLSubImage(-1, 0, -1); //debugging
 	}
 }
 
@@ -382,7 +410,7 @@ AsyncTask::DoneStatus refreshGrid(GenericAsyncTask *task, void *data)
 	if (*pREFRESHGRID)
 	{
 		mutex.acquire();
-		refreshGridFrustrum();
+		//refreshGridFrustrum();
 		*pREFRESHGRID = false;
 		mutex.release();
 	}
@@ -468,6 +496,129 @@ PT(Texture) Render3dTexture(int gridx, int gridy, int gridz)
 	return bunn;
 }
 
+unsigned char * Render3dTextureAsArray(int gridx, int gridy, int gridz)
+{
+	int texsize = TEXTURESIZE;
+
+	unsigned char * tex;
+	tex = (unsigned char *)malloc(texsize * texsize * texsize * 4 * (sizeof(char)));
+
+	//std::cout << " grid x: " << gridx << " y: " << gridy << " z: " << gridz << "  \n";
+	int n = 0;
+
+	for (int k = 0; k < texsize; k++) {
+
+		for (int i = 0; i < texsize; i++)
+		{
+			for (int j = 0; j < texsize; j++)
+			{
+				//This is good for index sample
+				float x = (((float)i / texsize) - 0.5f) * -1000.0f; //invert axis
+				float y = (((float)j / texsize) - 0.5f) * 1000.0f; 
+				float z = (((float)k / texsize) - 0.5f) * 1000.0f;
+
+				//this is good for world coordinates sample
+				//float x = (((float)i / texsize) - 0.5f) * 100.0f;
+				//float y = (((float)j / texsize) - 0.5f) * 100.0f + 25; //250 to put the bunny in the center of the render
+				//float z = (((float)k / texsize) - 0.5f) * 100.0f;
+
+				int r = 0;
+				int g = 0;
+				int b = 0;
+
+				//float data = grid->getValue(x - gridx * 1000, y - gridy * 1000, z - gridz * 1000);
+				float data = grid->getValue( y - gridy * 1000, x - gridx * 1000, z - gridz * 1000);
+
+				if (data > 0)
+				{
+					r = 255;
+					g = 255;
+				}
+
+				if (BOUNDINGBOX == 1)
+				{
+					if ((i == 0 || i == (texsize - 1)) && (k == 0 || k == (texsize - 1)) ||
+						(j == 0 || j == (texsize - 1)) && (k == 0 || k == (texsize - 1)) ||
+						(i == 0 && j == 0) || (i == 0 && j == (texsize - 1)) ||
+						(i == (texsize - 1) && j == 0) || (i == (texsize - 1) && j == (texsize - 1))
+						)
+					{
+						r = 255;
+						g = 255;
+					}
+				}
+
+				tex[n] = r;
+				tex[n + 1] = g;
+				tex[n + 2] = b;
+				tex[n + 3] = 255;
+				n += 4;
+			}
+		}
+	}
+	
+	return tex;
+}
+
+PT(Texture) Render3dBigTexture()
+{
+	int texsize = TEXTURESIZE;
+
+	texsize *= ((GRIDEXTENSION * 2) + 1);
+	PT(Texture)  bunn = new Texture("bunn");
+	bunn->setup_3d_texture(texsize, texsize, texsize, Texture::ComponentType::T_float, Texture::Format::F_rgba8);
+
+	//std::cout << " grid x: " << gridx << " y: " << gridy << " z: " << gridz << "  \n";
+
+	for (int k = 0; k < texsize; k++) {
+		PNMImage* pPNMImage = new PNMImage(texsize, texsize, 4);
+
+		for (int i = 0; i < texsize; i++)
+		{
+			for (int j = 0; j < texsize; j++)
+			{
+				float r = 0.0f;
+				float g = 0.0f;
+				float b = 0.0f;
+
+				if (BOUNDINGBOX == 1)
+				{
+					if ((i == 0 || i == (texsize - 1)) && (k == 0 || k == (texsize - 1)) ||
+						(j == 0 || j == (texsize - 1)) && (k == 0 || k == (texsize - 1)) ||
+						(i == 0 && j == 0) || (i == 0 && j == (texsize - 1)) ||
+						(i == (texsize - 1) && j == 0) || (i == (texsize - 1) && j == (texsize - 1))
+						)
+					{
+						r = 1.0f;
+						g = 1.0f;
+					}
+				}
+
+				//int flipy = -j + texsize - 1;
+				//std::cout << flipy << "\n";
+
+				pPNMImage->set_red(i, j, r);
+				pPNMImage->set_green(i, j, g);
+				pPNMImage->set_blue(i, j, b);
+				pPNMImage->set_alpha(i, j, 1.0f);
+			}
+		}
+
+		bunn->load(*pPNMImage, k, 0);
+
+		delete pPNMImage;
+	}
+
+	//bunn->write(Filename("woodgrain-#.png"), 0, 0, true, false);
+
+	bunn->set_wrap_u(SamplerState::WrapMode::WM_border_color);
+	bunn->set_wrap_v(SamplerState::WrapMode::WM_border_color);
+	bunn->set_wrap_w(SamplerState::WrapMode::WM_border_color);
+	bunn->set_border_color(LColor(0.0, 0.0, 0.0, 0.0));
+	bunn->set_keep_ram_image(true);
+	return bunn;
+}
+
 void initOffsetVectors()
 {
 	float j = GRIDEXTENSION * 1.0;
@@ -506,7 +657,7 @@ void refresh3dTexture()
 
 	//PTA_uchar image = bunn->modify_ram_image();
 	KeyTriple keycenter = std::make_tuple(0, 0, 0);
-	PTA_uchar image = gridFrustrum[keycenter]->modify_ram_image();
+	unsigned char * image = gridFrustrum[keycenter];
 
 	int z = 0;
 	int y = (TEXTURESIZE - 1);
@@ -617,11 +768,11 @@ PT(Texture) RenderShadows(int gridx, int gridy, int gridz)
 	return bunn;
 }
 
-void refresh3dTexture(PT(Texture) texture, int gridx, int gridy, int gridz)
+void refresh3dTexture(unsigned char * texture, int gridx, int gridy, int gridz)
 {
 	int textsize = TEXTURESIZE * TEXTURESIZE * TEXTURESIZE * 4;
 
-	PTA_uchar image = texture->modify_ram_image();
+	unsigned char * image = texture;
 
 	int z = 0;
 	int y = (TEXTURESIZE - 1);
@@ -675,6 +826,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 
 	float offsetgrid = GRID_SCALE / 2.0 / 10.0;
 
+	
 	if (FORWARD)
 	{
 		LVector3f fw = mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, -1.0));
@@ -683,6 +835,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 		VELX = VELX + ACCELERATION * globalClock->get_dt() * fw.get_x();
 		VELY = VELY + ACCELERATION * globalClock->get_dt() * fw.get_z();
 		VELZ = VELZ + ACCELERATION * globalClock->get_dt() * fw.get_y();
+
 	}
 
 	if (BACKWARDS)
@@ -693,6 +846,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 		VELX = VELX + ACCELERATION * globalClock->get_dt() * fw.get_x();
 		VELY = VELY + ACCELERATION * globalClock->get_dt() * fw.get_z();
 		VELZ = VELZ + ACCELERATION * globalClock->get_dt() * fw.get_y();
+
 	}
 
 	if (LEFT)
@@ -713,6 +867,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 		VELX = VELX + ACCELERATION * globalClock->get_dt() * fw.get_x();
 		VELY = VELY + ACCELERATION * globalClock->get_dt() * fw.get_z();
 		VELZ = VELZ + ACCELERATION * globalClock->get_dt() * fw.get_y();
+
 	}
 
 	if (UP)
@@ -723,6 +878,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 		VELX = VELX + ACCELERATION * globalClock->get_dt() * fw.get_x();
 		VELY = VELY + ACCELERATION * globalClock->get_dt() * fw.get_z();
 		VELZ = VELZ + ACCELERATION * globalClock->get_dt() * fw.get_y();
+
 	}
 
 	if (DOWN)
@@ -733,6 +889,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 		VELX = VELX + ACCELERATION * globalClock->get_dt() * fw.get_x();
 		VELY = VELY + ACCELERATION * globalClock->get_dt() * fw.get_z();
 		VELZ = VELZ + ACCELERATION * globalClock->get_dt() * fw.get_y();
+
 	}
 
 	if (SPINL)
@@ -745,11 +902,11 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 		SPINVEL = SPINVEL - ACCELERATION * globalClock->get_dt() * 50;
 	}
 
-	VELX = VELX * 0.9;
-	VELY = VELY * 0.9;
-	VELZ = VELZ * 0.9;
+	VELX -= (VELX  * (1.0 - FRICTION)) * globalClock->get_dt() * 10.0;
+	VELY -= (VELY  * (1.0 - FRICTION)) * globalClock->get_dt() * 10.0;
+	VELZ -= (VELZ  * (1.0 - FRICTION)) * globalClock->get_dt() * 10.0;
+	SPINVEL -= (SPINVEL  * (1.0 - FRICTION)) * globalClock->get_dt() * 10.0;
 
-	SPINVEL = SPINVEL * 0.9;
 
 	if (abs(VELX) < 0.0001)
 	{
@@ -838,8 +995,23 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 	
 	int z = 0;
 
+	//float scalevox = sin(time * 0.05f)*5.0f + 5.0f;
+	//std::cout << "sin: " << scalevox << "\n";
 
-	//std::cout << "sin value: " << fff << "\n";
+	mainQuad[z].set_shader_input("campos", camera.get_pos());
+	mainQuad[z].set_shader_input("target", lookAtDirection);
+	mainQuad[z].set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
+	//mainQuad[z].set_shader_input("params", LVector3f(GRID_SCALE, scalevox, INTERNALRES));
+
+	if (DENOISE == 1)
+	{
+		mainQuadNorm[z].set_shader_input("campos", camera.get_pos());
+		mainQuadNorm[z].set_shader_input("target", lookAtDirection);
+		mainQuadNorm[z].set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
+		//mainQuadNorm[z].set_shader_input("params", LVector3f(GRID_SCALE, scalevox, INTERNALRES));
+	}
+	/*
+	//refresh all splitter 3d textures - SLOW as HELL
 	for (int w = 0; w < ((GRIDEXTENSION * 2) + 1); w++)
 	{
 		for (int v = 0; v < ((GRIDEXTENSION * 2) + 1); v++)
@@ -860,29 +1032,8 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 				z++;
 			}
 		}
-	}
+	}*/
 	
-		
-
-	
-	/*
-	if (-floor(CAM_x + 0.5) != GRID_x ||
-		-floor(CAM_y + 0.5) != GRID_y ||
-		-floor(CAM_z + 0.5) != GRID_z)
-	{
-		
-		GRID_x = -floor(CAM_x + 0.5);
-		GRID_y = -floor(CAM_y + 0.5);
-		GRID_z = -floor(CAM_z + 0.5);
-		
-		if (!*pREFRESHGRID)
-		{
-			mutex.acquire();
-			*pREFRESHGRID = true;
-			mutex.release();
-		}
-	}
-	*/
 
 	//std::cout << "GRID x: " << GRID_x << " y: " << GRID_y << " z: " << GRID_z << "\n";
 	//std::cout << "x: " << CAM_x << " y: " << CAM_y << " z: " << CAM_z << "\n";
@@ -910,10 +1061,8 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 		}
 	}
 	
-
 	return AsyncTask::DS_cont;
 }
-
 
 //Refresh texture3d with new values from OpenVDB
 AsyncTask::DoneStatus cameraTask(GenericAsyncTask *task, void *data) {
@@ -941,17 +1090,17 @@ AsyncTask::DoneStatus renderParallelTextureTask(GenericAsyncTask *task, void *da
 
 	TaskArgs* taskdata = (TaskArgs*)data;
 
-	gridTextureArray[taskdata->index] = Render3dTexture(taskdata->gridx, taskdata->gridy, taskdata->gridz);
+	//gridTextureArray[taskdata->index] = Render3dTexture(taskdata->gridx, taskdata->gridy, taskdata->gridz);
 
 	//std::cout << "vector index: " << taskdata->index <<"\n";
 
 	KeyTriple key = std::make_tuple(taskdata->gridx, taskdata->gridy, taskdata->gridz);
 	gridFrustrum[key] = gridTextureArray[taskdata->index];
-	mainQuad[taskdata->index].set_texture(gridFrustrum[key]);
+	//mainQuad[taskdata->index].set_texture(gridFrustrum[key]);
 
 	if (DENOISE == 1)
 	{
-		mainQuadNorm[taskdata->index].set_texture(gridFrustrum[key]);
+		//mainQuadNorm[taskdata->index].set_texture(gridFrustrum[key]);
 	}
 
 	return AsyncTask::DS_done;
@@ -981,7 +1130,7 @@ void ZOrdering()
 
 	int z = 0;
 
-	for (int w = 0; w < ((GRIDEXTENSION * 2) + 1); w++)
+	/*for (int w = 0; w < ((GRIDEXTENSION * 2) + 1); w++)
 	{
 		for (int v = 0; v < ((GRIDEXTENSION * 2) + 1); v++)
 		{
@@ -1000,73 +1149,55 @@ void ZOrdering()
 				z++;
 			}
 		}
-	}
+	}*/
 	
 	
-	for (int z = 0; z < ((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1); z++)
-	{
-		zorder.push_back(data[z]);
-	}
+	//for (int z = 0; z < ((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1); z++)
+	//{
+	//	zorder.push_back(data[z]);
+	//}
 
-	std::sort(zorder.begin(), zorder.end(), CompareZPos);
+	//std::sort(zorder.begin(), zorder.end(), CompareZPos);
 
-	int i = 0;
+	//int i = 0;
 
-	for (std::vector<Zorder>::iterator it = zorder.begin(); it != zorder.end(); ++it) {
+	//for (std::vector<Zorder>::iterator it = zorder.begin(); it != zorder.end(); ++it) {
 
-		int u = (int)(i % ((GRIDEXTENSION * 2) + 1)) - GRIDEXTENSION;
-		int v = (int)(i / ((GRIDEXTENSION * 2) + 1)) % ((GRIDEXTENSION * 2) + 1) - GRIDEXTENSION;
-		int w = (int)(i / (((GRIDEXTENSION * 2) + 1) * ((GRIDEXTENSION * 2) + 1))) - GRIDEXTENSION;
+	//	int u = (int)(i % ((GRIDEXTENSION * 2) + 1)) - GRIDEXTENSION;
+	//	int v = (int)(i / ((GRIDEXTENSION * 2) + 1)) % ((GRIDEXTENSION * 2) + 1) - GRIDEXTENSION;
+	//	int w = (int)(i / (((GRIDEXTENSION * 2) + 1) * ((GRIDEXTENSION * 2) + 1))) - GRIDEXTENSION;
 
-		u = u - GRID_x;
-		v = v - GRID_y;
-		w = w - GRID_z;
+	//	u = u - GRID_x;
+	//	v = v - GRID_y;
+	//	w = w - GRID_z;
 
-		float distance = sqrtf(u * u + v * v + w * w) * -100.0f + 200.0;
+	//	float distance = sqrtf(u * u + v * v + w * w) * -100.0f + 200.0;
 
-		//std::cout << " z " << index << " distance: " << distance << "\n";
+	//	//std::cout << " z " << index << " distance: " << distance << "\n";
 
-		(*it).quad.set_bin("fixed", (int)(distance));
+	//	(*it).quad.set_bin("fixed", (int)(distance));
 
-		if (DENOISE == 1)
-		{
-			(*it).quadNorm.set_bin("fixed", (int)(distance));
-		}
-		i++;
-	}
+	//	if (DENOISE == 1)
+	//	{
+	//		(*it).quadNorm.set_bin("fixed", (int)(distance));
+	//	}
+	//	i++;
+	//}
 		
 }
 
 void CopyAndRefreshTexture(CopyTuple params, GridFrustrum cache)
 {
-	//// Create a dummy node and apply the shader to it
-	//NodePath dummy("dummy");
-	//dummy.set_shader(copyTextureShader);
-	//dummy.set_shader_input("fromTex", cache[std::get<1>(params)]);
-	//dummy.set_shader_input("toTex", gridTextureArray[std::get<0>(params)]);
-
-	//// Retrieve the underlying ShaderAttrib
-	//CPT(ShaderAttrib) sattr = DCAST(ShaderAttrib,
-	//	dummy.get_attrib(ShaderAttrib::get_class_type()));
-
-	//// Our image has 32x32 tiles
-	//LVecBase3i work_groups(512 / 16, 512 / 16, 1);
-
-	//// Dispatch the compute shader, right now!
-	//GraphicsEngine *engine = GraphicsEngine::get_global_ptr();
-	//engine->dispatch_compute(work_groups, sattr, mainWindow->get_graphics_window()->get_gsg());
 	
-	//std::cout << "copy from: " << std::get<0>(std::get<1>(params)) << " " << std::get<1>(std::get<1>(params)) << " " << std::get<2>(std::get<1>(params)) << " to index: " << std::get<0>(params)  << "\n";
-
 	gridTextureArray[std::get<0>(params)] = cache[std::get<1>(params)];
 
 	KeyTriple key = std::get<1>(params);
 	gridFrustrum[key] = gridTextureArray[std::get<0>(params)];
-	mainQuad[std::get<0>(params)].set_texture(gridTextureArray[std::get<0>(params)], 1);
+	//mainQuad[std::get<0>(params)].set_texture(gridTextureArray[std::get<0>(params)], 1);
 
 	if (DENOISE == 1)
 	{
-		mainQuadNorm[std::get<0>(params)].set_texture(gridTextureArray[std::get<0>(params)], 1);
+		//mainQuadNorm[std::get<0>(params)].set_texture(gridTextureArray[std::get<0>(params)], 1);
 	}
 
 }
@@ -1244,18 +1375,29 @@ void initGridFrustrum()
 			{
 				key[z] = std::make_tuple(GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w]);
 
-				gridFrustrum[key[z]] = Render3dTexture(gridoffsetx[u], gridoffsety[v], gridoffsetz[w]);
+				gridFrustrum[key[z]] = Render3dTextureAsArray(gridoffsetx[u], gridoffsety[v], gridoffsetz[w]);
 
 				gridTextureArray[z] = gridFrustrum[key[z]];
-				mainQuad[z].set_texture(gridFrustrum[key[z]]);
+				//mainQuad[z].set_texture(gridFrustrum[key[z]]);
 
-				if (DENOISE == 1) {
-					mainQuadNorm[z].set_texture(gridFrustrum[key[z]]);
-				}
+				//if (DENOISE == 1) {
+				//	mainQuadNorm[z].set_texture(gridFrustrum[key[z]]);
+				//}
 
 				z++;
 			}
 		}
+	}
+
+	//Only use just 1 big 3d texture
+	//KeyTriple centerkey = std::make_tuple(0, 0, 0);
+	//Texture * finaltexture = gridFrustrum[centerkey];
+	PT(Texture) finaltexture = Render3dBigTexture();
+
+	mainQuad[0].set_texture(finaltexture);
+
+	if (DENOISE == 1) {
+		mainQuadNorm[0].set_texture(finaltexture);
 	}
 
 	//array to use them as parametes in parallel tasks
@@ -1811,6 +1953,11 @@ void GenerateBillboard(int width, int height, WindowFramework * window, int inde
 		InitShader(index, nodePath, type);
 
 		nodePath.set_pos(centerx, 0, centery);
+
+		if (index > 20)
+		{
+			nodePath.hide();
+		}
 	}
 	else
 	{
@@ -1981,15 +2128,21 @@ void GenerateTextureBuffer(int width, int height, WindowFramework * window, Node
 		GenerateMainBillboard(width, height, window, mytextureaa);
 	}
 
+	GenerateBillboard(width, height, window, 0, true, myscene, -width / 2, height / 2, 0);
 
-	for (int z = 0; z < ((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1); z++)
+	if (DENOISE == 1) {
+		GenerateBillboard(width, height, window, 0, true, myscenenorm, -width / 2, height / 2, 1);
+	}
+
+	//use many billboards to split the 3d texture --- SLOW as HELL
+	/*for (int z = 0; z < ((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1); z++)
 	{
 		GenerateBillboard(width, height, window, z, true, myscene, -width / 2, height / 2, 0);
 
 		if (DENOISE == 1) {
 			GenerateBillboard(width, height, window, z, true, myscenenorm, -width / 2, height / 2, 1);
 		}
-	}
+	}*/
 
 	if (DENOISE == 1)
 	{
@@ -2120,4 +2273,48 @@ void MakeShadertoy(int argc, char *argv[])
 	framework.close_framework();
 
 	delete grid;
+}
+
+void callOpenGLSubImage(int posx, int posy, int posz)
+{
+	//PFNGLTEXSUBIMAGE3DPROC glTexSubImage3D = (PFNGLTEXSUBIMAGE3DPROC)wglGetProcAddress("glTexSubImage3D");
+	PFNGLTEXTURESUBIMAGE3DPROC glTextureSubImage3D = (PFNGLTEXTURESUBIMAGE3DPROC)GetAnyGLFuncAddress("glTextureSubImage3D");
+
+	std::cout << "Texture gl function address: " << (int)glTextureSubImage3D << "\n";
+	//PT(GraphicsStateGuardianBase) gsg = mainWindow->get_graphics_output()->get_gsg();
+	PT(GraphicsStateGuardianBase) gsg = mainWindow->get_graphics_window()->get_gsg();
+	GLTextureContext *GLtex = DCAST(GLTextureContext, mainQuad[0].get_texture()->prepare_now(0, gsg->get_prepared_objects(), gsg));
+	GLuint texA = GLtex->_index;
+	GLuint internal_format = GLtex->_internal_format;
+	GLuint wi = GLtex->_width;
+	GLuint he = GLtex->_height;
+	GLuint de = GLtex->_depth;
+	std::cout << "Texture gl id: " << texA << " int format: " << internal_format << " " << wi << " " << he << " " << de << "\n";
+
+	//GLTextureContext *GLtex2 = DCAST(GLTextureContext, bunn->prepare_now(0, gsg->get_prepared_objects(), gsg));
+	//GLuint texB = GLtex2->_index;
+
+	unsigned char * tex;
+	int bigsize = TEXTURESIZE * ((GRIDEXTENSION * 2) + 1);
+
+	int centerx = GRIDEXTENSION;
+	int centery = GRIDEXTENSION;
+	int centerz = GRIDEXTENSION;
+
+	int finalposx = (centerx - posx) * TEXTURESIZE;
+	int finalposy = (centery - posy) * TEXTURESIZE;
+	int finalposz = (centerz - posz) * TEXTURESIZE;
+
+	KeyTriple key = std::make_tuple(0, 0, 0);
+	tex = gridFrustrum[key];
+
+	glBindTexture(GL_TEXTURE_3D, texA);
+	glTextureSubImage3D(texA, 0, finalposx, finalposy, finalposz, TEXTURESIZE, TEXTURESIZE, TEXTURESIZE, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)tex);
+	//glTextureSubImage3D(texA, 0, 10, 10, 10, 1, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*) tex);
+
+	//GLenum err;
+	//err = glGetError();
+
+	//std::cout << "Texture gl error: " << err << "\n";
+	//free(tex);
 }

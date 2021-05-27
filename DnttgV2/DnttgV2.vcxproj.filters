@@ -35,11 +35,20 @@
     <ClInclude Include="Dnntgv2.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="KHR\khrplatform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gl\glext.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\shader.frag" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="shaders\shader.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="lib\Release\x64\glew32.lib" />
   </ItemGroup>
 </Project>

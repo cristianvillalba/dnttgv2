@@ -10,7 +10,7 @@ using std::sort;
 using std::vector;
 
 typedef std::tuple<int, int, int> KeyTriple;
-typedef std::map<KeyTriple, PT(Texture)> GridFrustrum;
+typedef std::map<KeyTriple, unsigned char *> GridFrustrum;
 
 typedef std::tuple<int, KeyTriple> CopyTuple;
 typedef std::tuple<int, int, int, int> RefreshTuple;
@@ -51,10 +51,13 @@ void spinRCameraUp(const Event* eventPtr, void* dataPtr);
 void spawnSphere(const Event* eventPtr, void* dataPtr);
 
 PT(Texture) Render3dTexture(int gridx, int griy, int gridz);
+unsigned char * Render3dTextureAsArray(int gridx, int griy, int gridz);
+PT(Texture) Render3dBigTexture();
 void refresh3dTexture();
-void refresh3dTexture(PT(Texture) texture, int gridx, int gridy, int gridz);
+void refresh3dTexture(unsigned char * texture, int gridx, int gridy, int gridz);
 PT(Texture) RenderShadows(int gridx, int gridy, int gridz);
 void refreshShadowTexture();
+void callOpenGLSubImage(int posx, int posy, int posz);
 
 
 //Headers
