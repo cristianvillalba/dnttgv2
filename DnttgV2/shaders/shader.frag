@@ -45,8 +45,9 @@ float sdSphere( vec3 p, float s )
 }
 
 // Amanatides & Woo style voxel traversal
-vec3 voxelSize = vec3(sin(osg_FrameTime*0.25) + 1.0); // in world space
-//vec3 voxelSize = vec3(0.025*params.x);//original value
+//vec3 voxelSize = vec3(sin(osg_FrameTime*0.25) + 1.0); // in world space
+//vec3 voxelSize = vec3(0.05*params.x);//original value
+vec3 voxelSize = vec3(0.01*params.x);//tiny voxels
 //vec3 voxelSize = vec3(params.y);//coming from c++
 
 vec2 seed;//seed for random
@@ -66,7 +67,7 @@ vec3 voxelToWorld(vec3 i)
 
 vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
 {
-    const int maxSteps = 64;
+    const int maxSteps = 256;
     vec3 voxel = worldToVoxel(ro);
     vec3 step = sign(rd);
 	vec3 nearestVoxel = voxel + vec3(rd.x > 0.0, rd.y > 0.0, rd.z > 0.0);
@@ -130,44 +131,6 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
 	//}
 	
 	return ro + hitT * rd;
-}
-
-bool lightTrace(vec3 ro, vec3 rd)
-{
-	float t = 0;
-	
-    for (int i = 0; i < 200; i++)
-	{
-		vec3 pos = ro + t * rd;
-		
-		float distance = map(pos);
-		
-		if (distance != 0.0 && i > 20) //prevent hitting the same object(?)
-		{
-			return true;
-		}
-		
-		t += 0.1;
-	}
-	
-	return false;
-}
-
-float calcOcc( in vec2 uv, vec4 va, vec4 vb, vec4 vc, vec4 vd )
-{
-    vec2 st = 1.0 - uv;
-
-    // edges
-    vec4 wa = vec4( uv.x, st.x, uv.y, st.y ) * vc;
-
-    // corners
-    vec4 wb = vec4(uv.x*uv.y,
-                   st.x*uv.y,
-                   st.x*st.y,
-                   uv.x*st.y)*vd*(1.0-vc.xzyw)*(1.0-vc.zywx);
-    
-    return wa.x + wa.y + wa.z + wa.w +
-           wb.x + wb.y + wb.z + wb.w;
 }
 
 vec2 rand2n() {
