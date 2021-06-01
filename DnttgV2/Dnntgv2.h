@@ -63,6 +63,7 @@ void callOpenGLSubImage(int posx, int posy, int posz);
 //Headers
 void initGridFrustrum();
 void initOffsetVectors();
+void initBigTexture();
 void refreshGridFrustrum();
 void GenerateMainBillboard(int w, int h, WindowFramework * window, PT(Texture) mtex);
 void GeneratePrePassBillboard(int w, int h, WindowFramework * window, NodePath parent, int centerx, int centery);

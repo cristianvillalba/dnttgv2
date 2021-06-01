@@ -111,8 +111,10 @@ int GRID_x = 0;
 int GRID_y = 0;
 int GRID_z = 0;
 
-//Grid Scale
+//Grid parameters
 float GRID_SCALE = 10.0f;
+float TEXTURE_3D_EXTENSION = (GRIDEXTENSION * 2.0) + 1.0;
+float VOXEL_SIZE = 20.0f;
 
 //grid frustrum
 GridFrustrum gridFrustrum;
@@ -303,7 +305,7 @@ void upCamera(const Event* eventPtr, void* dataPtr)
 	if (!UP)
 	{
 		UP = true;
-		callOpenGLSubImage(-1, 0, -1); //debugging
+		initBigTexture();
 	}
 }
 
@@ -824,8 +826,6 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 	double angleradians = angledegrees * (3.14 / 180.0);
 	//camera.set_pos(1 * sin(angleradians), 0, 1*cos(angleradians) + CAM_z);//orbit around center
 
-	float offsetgrid = GRID_SCALE / 2.0 / 10.0;
-
 	
 	if (FORWARD)
 	{
@@ -934,42 +934,42 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 	float nCAM_y = CAM_y - VELZ * globalClock->get_dt();
 	ANGLEDEGREES = ANGLEDEGREES + SPINVEL * globalClock->get_dt();
 
-	if (nCAM_x > 0.5 * (GRID_SCALE + offsetgrid) || nCAM_x < -0.5 * (GRID_SCALE + offsetgrid) ||
-		nCAM_y > 0.5 * (GRID_SCALE + offsetgrid) || nCAM_y < -0.5 * (GRID_SCALE + offsetgrid) ||
-		nCAM_z > 0.5 * (GRID_SCALE + offsetgrid) || nCAM_z < -0.5 * (GRID_SCALE + offsetgrid)
+	if (nCAM_x > 0.5 * GRID_SCALE || nCAM_x < -0.5 * GRID_SCALE  ||
+		nCAM_y > 0.5 * GRID_SCALE || nCAM_y < -0.5 * GRID_SCALE  ||
+		nCAM_z > 0.5 * GRID_SCALE || nCAM_z < -0.5 * GRID_SCALE
 		)
 	{
-		if (nCAM_x > 0.5 * (GRID_SCALE + offsetgrid))
+		if (nCAM_x > 0.5 * GRID_SCALE)
 		{
 			GRID_x--;
-			nCAM_x = -0.5 * (GRID_SCALE + offsetgrid) + abs(0.5 * (GRID_SCALE + offsetgrid) - nCAM_x);
+			nCAM_x = -0.5 * GRID_SCALE  + abs(0.5 * GRID_SCALE - nCAM_x);
 		}
-		else if (nCAM_x < -0.5 * (GRID_SCALE + offsetgrid))
+		else if (nCAM_x < -0.5 * GRID_SCALE)
 		{
 			GRID_x++;
-			nCAM_x = 0.5 * (GRID_SCALE + offsetgrid) - abs(-0.5 * (GRID_SCALE + offsetgrid) - nCAM_x);
+			nCAM_x = 0.5 * GRID_SCALE - abs(-0.5 * GRID_SCALE  - nCAM_x);
 		}
 
-		if (nCAM_y > 0.5 * (GRID_SCALE + offsetgrid))
+		if (nCAM_y > 0.5 * GRID_SCALE)
 		{
 			GRID_y--;
-			nCAM_y = -0.5 * (GRID_SCALE + offsetgrid) + abs(0.5 * (GRID_SCALE + offsetgrid) - nCAM_y);
+			nCAM_y = -0.5 * GRID_SCALE  + abs(0.5 * GRID_SCALE  - nCAM_y);
 		}
-		else if (nCAM_y < -0.5 * (GRID_SCALE + offsetgrid))
+		else if (nCAM_y < -0.5 * GRID_SCALE )
 		{
 			GRID_y++;
-			nCAM_y = 0.5 * (GRID_SCALE + offsetgrid) + abs(-0.5 * (GRID_SCALE + offsetgrid) - nCAM_y);
+			nCAM_y = 0.5 * GRID_SCALE  + abs(-0.5 * GRID_SCALE - nCAM_y);
 		}
 
-		if (nCAM_z > 0.5 * (GRID_SCALE + offsetgrid))
+		if (nCAM_z > 0.5 * GRID_SCALE)
 		{
 			GRID_z--;
-			nCAM_z = -0.5 * (GRID_SCALE + offsetgrid) + abs(0.5 * (GRID_SCALE + offsetgrid) - nCAM_z);
+			nCAM_z = -0.5 * GRID_SCALE  + abs(0.5 * GRID_SCALE  - nCAM_z);
 		}
-		else if (nCAM_z < -0.5 * (GRID_SCALE + offsetgrid))
+		else if (nCAM_z < -0.5 * GRID_SCALE)
 		{
 			GRID_z++;
-			nCAM_z = 0.5 * (GRID_SCALE + offsetgrid) - abs(-0.5 * (GRID_SCALE + offsetgrid) - nCAM_z);
+			nCAM_z = 0.5 * GRID_SCALE  - abs(-0.5 * GRID_SCALE  - nCAM_z);
 		}
 
 		if (!*pREFRESHGRID)
@@ -1000,14 +1000,16 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 
 	mainQuad[z].set_shader_input("campos", camera.get_pos());
 	mainQuad[z].set_shader_input("target", lookAtDirection);
-	mainQuad[z].set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
+	mainQuad[z].set_shader_input("params", LVector3f(GRID_SCALE, TEXTURE_3D_EXTENSION, INTERNALRES));
+	mainQuad[z].set_shader_input("voxparams", LVector3f(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
 	//mainQuad[z].set_shader_input("params", LVector3f(GRID_SCALE, scalevox, INTERNALRES));
 
 	if (DENOISE == 1)
 	{
 		mainQuadNorm[z].set_shader_input("campos", camera.get_pos());
 		mainQuadNorm[z].set_shader_input("target", lookAtDirection);
-		mainQuadNorm[z].set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
+		mainQuadNorm[z].set_shader_input("params", LVector3f(GRID_SCALE, TEXTURE_3D_EXTENSION, INTERNALRES));
+		mainQuadNorm[z].set_shader_input("voxparams", LVector3f(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
 		//mainQuadNorm[z].set_shader_input("params", LVector3f(GRID_SCALE, scalevox, INTERNALRES));
 	}
 	/*
@@ -1422,6 +1424,34 @@ void initGridFrustrum()
 //	CopyTexture(bunn, gridTextureArray[3]);
 //	mainQuad04.set_texture(gridTextureArray[3]);
 //}
+
+void initBigTexture()
+{
+	KeyTriple key[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
+
+	for (int w = 0; w < ((GRIDEXTENSION * 2) + 1); w++)
+	{
+		for (int v = 0; v < ((GRIDEXTENSION * 2) + 1); v++)
+		{
+			for (int u = 0; u < ((GRIDEXTENSION * 2) + 1); u++)
+			{
+				//key[z] = std::make_tuple();
+
+				//put empty texture on every quad
+				//prevent flickering on textures
+				//mainQuad[z].set_texture(emptyTexture);
+
+				//if (DENOISE == 1)
+				//{
+				//	mainQuadNorm[z].set_texture(emptyTexture);
+				//}
+				std::cout << "Rfreshing " << GRID_x + gridoffsetx[u] << " " << GRID_y + gridoffsety[v] << " " << GRID_z + gridoffsetz[w] << "\n";
+				callOpenGLSubImage(GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w]); //debugging
+
+			}
+		}
+	}
+}
 
 void refreshGridFrustrum()
 {
@@ -2277,11 +2307,9 @@ void MakeShadertoy(int argc, char *argv[])
 
 void callOpenGLSubImage(int posx, int posy, int posz)
 {
-	//PFNGLTEXSUBIMAGE3DPROC glTexSubImage3D = (PFNGLTEXSUBIMAGE3DPROC)wglGetProcAddress("glTexSubImage3D");
 	PFNGLTEXTURESUBIMAGE3DPROC glTextureSubImage3D = (PFNGLTEXTURESUBIMAGE3DPROC)GetAnyGLFuncAddress("glTextureSubImage3D");
 
 	std::cout << "Texture gl function address: " << (int)glTextureSubImage3D << "\n";
-	//PT(GraphicsStateGuardianBase) gsg = mainWindow->get_graphics_output()->get_gsg();
 	PT(GraphicsStateGuardianBase) gsg = mainWindow->get_graphics_window()->get_gsg();
 	GLTextureContext *GLtex = DCAST(GLTextureContext, mainQuad[0].get_texture()->prepare_now(0, gsg->get_prepared_objects(), gsg));
 	GLuint texA = GLtex->_index;
@@ -2291,8 +2319,6 @@ void callOpenGLSubImage(int posx, int posy, int posz)
 	GLuint de = GLtex->_depth;
 	std::cout << "Texture gl id: " << texA << " int format: " << internal_format << " " << wi << " " << he << " " << de << "\n";
 
-	//GLTextureContext *GLtex2 = DCAST(GLTextureContext, bunn->prepare_now(0, gsg->get_prepared_objects(), gsg));
-	//GLuint texB = GLtex2->_index;
 
 	unsigned char * tex;
 	int bigsize = TEXTURESIZE * ((GRIDEXTENSION * 2) + 1);
@@ -2305,12 +2331,11 @@ void callOpenGLSubImage(int posx, int posy, int posz)
 	int finalposy = (centery - posy) * TEXTURESIZE;
 	int finalposz = (centerz - posz) * TEXTURESIZE;
 
-	KeyTriple key = std::make_tuple(0, 0, 0);
+	KeyTriple key = std::make_tuple(posx, posy, posz);
 	tex = gridFrustrum[key];
 
 	glBindTexture(GL_TEXTURE_3D, texA);
 	glTextureSubImage3D(texA, 0, finalposx, finalposy, finalposz, TEXTURESIZE, TEXTURESIZE, TEXTURESIZE, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)tex);
-	//glTextureSubImage3D(texA, 0, 10, 10, 10, 1, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*) tex);
 
 	//GLenum err;
 	//err = glGetError();

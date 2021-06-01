@@ -11,7 +11,8 @@ uniform sampler3D p3d_Texture0;
 
 uniform vec3 campos; //custom campos vector
 uniform vec3 target; //custom camdir vector
-uniform vec3 params; //custom params vector (scale, scale, internal resolution)
+uniform vec3 params; //custom params vector (grid scale, grid extension, internal resolution)
+uniform vec3 voxparams; //custom params vector (voxelsize, voxelsize, voxelsize)
 
 // Input from vertex shader
 //in vec2 texcoord;
@@ -20,6 +21,18 @@ uniform float osg_FrameTime;
 float rand(vec2 co){
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
+
+float sdSphere( vec3 p, float s )
+{
+    return length(p)-s;
+}
+
+float sdBox( vec3 p, vec3 b )
+{
+  vec3 q = abs(p) - b;
+  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
+}
+
 
 float map( in vec3 p )
 {
@@ -31,24 +44,16 @@ float map( in vec3 p )
 	//p.y = p.y + noisey/10.0;
 	//p.z = p.z + noisez/10.0;
 	p.y = -p.y;
-	p *= (1/params.x);
+	p /= (params.x*params.y);
 	
-
 	vec4 color = texture(p3d_Texture0, p);
-		
+
     return color.r;
 }
 
-float sdSphere( vec3 p, float s )
-{
-    return length(p)-s;
-}
-
 // Amanatides & Woo style voxel traversal
-//vec3 voxelSize = vec3(sin(osg_FrameTime*0.25) + 1.0); // in world space
 //vec3 voxelSize = vec3(0.05*params.x);//original value
-vec3 voxelSize = vec3(0.01*params.x);//tiny voxels
-//vec3 voxelSize = vec3(params.y);//coming from c++
+vec3 voxelSize = vec3(params.x/voxparams.x);//grid size divided by 10. In this case voxels of 1.0
 
 vec2 seed;//seed for random
 
@@ -242,7 +247,8 @@ void main() {
 	// pixel coordinates
 	vec2 p = vec2((2.0*gl_FragCoord.x-params.z)/params.z, (2.0*gl_FragCoord.y-params.z)/params.z); //this will change range to [-1...1]
 		
-	float OFFSET = 0.5 * params.x;
+	//float OFFSET = 0.5 * params.x / params.y;
+	float OFFSET = 0.5 * (params.x * params.y);
 	
 	vec3 ro = vec3( campos.x + OFFSET, campos.y -OFFSET, campos.z + OFFSET);
 	vec3 ta = vec3( target.x + OFFSET, target.y -OFFSET, target.z + OFFSET);
