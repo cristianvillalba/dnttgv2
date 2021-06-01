@@ -114,7 +114,7 @@ int GRID_z = 0;
 //Grid parameters
 float GRID_SCALE = 10.0f;
 float TEXTURE_3D_EXTENSION = (GRIDEXTENSION * 2.0) + 1.0;
-float VOXEL_SIZE = 20.0f;
+float VOXEL_SIZE = 20.0f; //this number will divide the GRID_SCALE to get the actual voxel size
 
 //grid frustrum
 GridFrustrum gridFrustrum;
@@ -389,7 +389,7 @@ AsyncTask::DoneStatus modifyGrid(GenericAsyncTask *task, void *data)
 		std::cout << "spawn at x: " << fw.get_x() << "spawn at y: " << fw.get_y() << "spawn at z: " << fw.get_z() << "\n";
 
 		fw *= -1; //invert coordinates to spawn
-		grid->spawnSphere(fw);
+		grid->spawnSphere(fw, 200.0f);
 
 		//refresh3dTexture();
 		
@@ -1427,6 +1427,11 @@ void initGridFrustrum()
 
 void initBigTexture()
 {
+	//callOpenGLSubImage(0, 0, 0);
+	//callOpenGLSubImage(-1, 1, 1);
+	//callOpenGLSubImage(0, 1, 1);
+	//callOpenGLSubImage(1, 1, 1);
+	
 	KeyTriple key[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
 
 	for (int w = 0; w < ((GRIDEXTENSION * 2) + 1); w++)
@@ -1446,7 +1451,8 @@ void initBigTexture()
 				//	mainQuadNorm[z].set_texture(emptyTexture);
 				//}
 				std::cout << "Rfreshing " << GRID_x + gridoffsetx[u] << " " << GRID_y + gridoffsety[v] << " " << GRID_z + gridoffsetz[w] << "\n";
-				callOpenGLSubImage(GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w]); //debugging
+				callOpenGLSubImage(GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w]); 
+				//callOpenGLSubImage(GRID_y + gridoffsety[v], GRID_x + gridoffsetx[u], GRID_z + gridoffsetz[w]);
 
 			}
 		}
@@ -2328,10 +2334,12 @@ void callOpenGLSubImage(int posx, int posy, int posz)
 	int centerz = GRIDEXTENSION;
 
 	int finalposx = (centerx - posx) * TEXTURESIZE;
-	int finalposy = (centery - posy) * TEXTURESIZE;
+	int finalposy = (centery + posy) * TEXTURESIZE;
 	int finalposz = (centerz - posz) * TEXTURESIZE;
 
-	KeyTriple key = std::make_tuple(posx, posy, posz);
+
+	//KeyTriple key = std::make_tuple(posx, posy, posz);
+	KeyTriple key = std::make_tuple(posy, posx, posz);
 	tex = gridFrustrum[key];
 
 	glBindTexture(GL_TEXTURE_3D, texA);
