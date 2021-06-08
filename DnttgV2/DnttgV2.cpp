@@ -81,6 +81,8 @@ NodePath mainQuad[1];
 NodePath mainQuadNorm[1];
 
 unsigned char * gridTextureArray[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
+KeyTriple gridTextureArrayToKeys[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
+
 LVector3f gridCoordOffset[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
 
 float offsetvectorx[((GRIDEXTENSION * 2) + 1)];
@@ -183,6 +185,9 @@ void *GetAnyGLFuncAddress(const char *name)
 
 	return p;
 }
+
+PFNGLTEXTURESUBIMAGE3DPROC glTextureSubImage3D;
+//PFNGLTEXTURESUBIMAGE3DPROC glTextureSubImage3D = (PFNGLTEXTURESUBIMAGE3DPROC)GetAnyGLFuncAddress("glTextureSubImage3D");
 
 
 PT(Texture) rendertexture01;
@@ -305,7 +310,6 @@ void upCamera(const Event* eventPtr, void* dataPtr)
 	if (!UP)
 	{
 		UP = true;
-		initBigTexture();
 	}
 }
 
@@ -407,18 +411,18 @@ AsyncTask::DoneStatus modifyGrid(GenericAsyncTask *task, void *data)
 	return AsyncTask::DS_cont;
 }
 
-AsyncTask::DoneStatus refreshGrid(GenericAsyncTask *task, void *data)
-{
-	if (*pREFRESHGRID)
-	{
-		mutex.acquire();
-		//refreshGridFrustrum();
-		*pREFRESHGRID = false;
-		mutex.release();
-	}
-
-	return AsyncTask::DS_cont;
-}
+//AsyncTask::DoneStatus refreshGrid(GenericAsyncTask *task, void *data)
+//{
+//	if (*pREFRESHGRID)
+//	{
+//		mutex.acquire();
+//		refreshGridFrustrum();
+//		*pREFRESHGRID = false;
+//		mutex.release();
+//	}
+//
+//	return AsyncTask::DS_cont;
+//}
 
 PT(Texture) Render3dTexture(int gridx, int gridy, int gridz)
 {
@@ -701,73 +705,6 @@ void refresh3dTexture()
 			}
 		}
 	}
-}
-
-PT(Texture) RenderShadows(int gridx, int gridy, int gridz)
-{
-	int texsize = TEXTURESIZE * 2;
-
-	PT(Texture)  bunn = new Texture("bunn");
-	bunn->setup_3d_texture(texsize, texsize, texsize, Texture::ComponentType::T_float, Texture::Format::F_rgba8);
-
-
-	for (int k = 0; k < texsize; k++) {
-		PNMImage* pPNMImage = new PNMImage(texsize, texsize, 4);
-
-		for (int i = 0; i < texsize; i++)
-		{
-			for (int j = 0; j < texsize; j++)
-			{
-				//This is good for index sample
-				float x = (((float)i / texsize) - 0.5f) * 1000.0f * 3.0; //to expand 3 grids across axis
-				float y = (((float)j / texsize) - 0.5f) * 1000.0f * 3.0; //to expand 3 grids across axis
-				float z = (((float)k / texsize) - 0.5f) * 1000.0f * 3.0; //to expand 3 grids across axis
-
-				float r = 0.0f;
-				float g = 0.0f;
-				float b = 0.0f;
-
-				float data = grid->getValue(x - gridx * 1000, y - gridy * 1000, z - gridz * 1000);
-
-				if (data > 0)
-				{
-					r = 1.0f;
-					g = 1.0f;
-				}
-
-				if (BOUNDINGBOX == 1)
-				{
-					if ((i == 0 || i == (texsize - 1)) && (k == 0 || k == (texsize - 1)) ||
-						(j == 0 || j == (texsize - 1)) && (k == 0 || k == (texsize - 1)) ||
-						(i == 0 && j == 0) || (i == 0 && j == (texsize - 1)) ||
-						(i == (texsize - 1) && j == 0) || (i == (texsize - 1) && j == (texsize - 1))
-						)
-					{
-						r = 1.0f;
-						g = 1.0f;
-					}
-				}
-
-				pPNMImage->set_red(i, j, r);
-				pPNMImage->set_green(i, j, g);
-				pPNMImage->set_blue(i, j, b);
-				pPNMImage->set_alpha(i, j, 1.0f);
-			}
-		}
-
-		bunn->load(*pPNMImage, k, 0);
-
-		delete pPNMImage;
-	}
-
-	//bunn->write(Filename("shadow-#.png"), 0, 0, true, false);
-
-	bunn->set_wrap_u(SamplerState::WrapMode::WM_border_color);
-	bunn->set_wrap_v(SamplerState::WrapMode::WM_border_color);
-	bunn->set_wrap_w(SamplerState::WrapMode::WM_border_color);
-	bunn->set_border_color(LColor(0.0, 0.0, 0.0, 0.0));
-	bunn->set_keep_ram_image(true);
-	return bunn;
 }
 
 void refresh3dTexture(unsigned char * texture, int gridx, int gridy, int gridz)
@@ -1108,95 +1045,31 @@ AsyncTask::DoneStatus renderParallelTextureTask(GenericAsyncTask *task, void *da
 	return AsyncTask::DS_done;
 }
 
-bool CompareZPos(Zorder n1, Zorder n2)
-{
-	LVector3f n1distance = LVector3f(CAM_x, CAM_y, CAM_z) - n1.pos;
-	LVector3f n2distance = LVector3f(CAM_x, CAM_y, CAM_z) - n2.pos;
-	bool log = false;
-
-	if (n1distance.length() < n2distance.length()) {
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-void ZOrdering()
-{
-	std::vector<Zorder> zorder;
-	
-	Zorder data[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
-	LVector3f key[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
-
-	int z = 0;
-
-	/*for (int w = 0; w < ((GRIDEXTENSION * 2) + 1); w++)
-	{
-		for (int v = 0; v < ((GRIDEXTENSION * 2) + 1); v++)
-		{
-			for (int u = 0; u < ((GRIDEXTENSION * 2) + 1); u++)
-			{
-				key[z] = LVector3f(offsetvectorxO[u]*1000, offsetvectoryO[v] * 1000, offsetvectorzO[w] * 1000);
-
-				data[z].pos = key[z];
-				data[z].quad = mainQuad[z];
-				if (DENOISE == 1)
-				{
-					data[z].quadNorm = mainQuadNorm[z];
-				}
-				data[z].index = z;
-
-				z++;
-			}
-		}
-	}*/
-	
-	
-	//for (int z = 0; z < ((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1); z++)
-	//{
-	//	zorder.push_back(data[z]);
-	//}
-
-	//std::sort(zorder.begin(), zorder.end(), CompareZPos);
-
-	//int i = 0;
-
-	//for (std::vector<Zorder>::iterator it = zorder.begin(); it != zorder.end(); ++it) {
-
-	//	int u = (int)(i % ((GRIDEXTENSION * 2) + 1)) - GRIDEXTENSION;
-	//	int v = (int)(i / ((GRIDEXTENSION * 2) + 1)) % ((GRIDEXTENSION * 2) + 1) - GRIDEXTENSION;
-	//	int w = (int)(i / (((GRIDEXTENSION * 2) + 1) * ((GRIDEXTENSION * 2) + 1))) - GRIDEXTENSION;
-
-	//	u = u - GRID_x;
-	//	v = v - GRID_y;
-	//	w = w - GRID_z;
-
-	//	float distance = sqrtf(u * u + v * v + w * w) * -100.0f + 200.0;
-
-	//	//std::cout << " z " << index << " distance: " << distance << "\n";
-
-	//	(*it).quad.set_bin("fixed", (int)(distance));
-
-	//	if (DENOISE == 1)
-	//	{
-	//		(*it).quadNorm.set_bin("fixed", (int)(distance));
-	//	}
-	//	i++;
-	//}
-		
-}
 
 void CopyAndRefreshTexture(CopyTuple params, GridFrustrum cache)
 {
+	int texsize = TEXTURESIZE;
+
+	//gridTextureArray[std::get<0>(params)] = cache[std::get<1>(params)];
 	
-	gridTextureArray[std::get<0>(params)] = cache[std::get<1>(params)];
 
 	KeyTriple key = std::get<1>(params);
-	gridFrustrum[key] = gridTextureArray[std::get<0>(params)];
+	//KeyTriple key2 = std::get<2>(params);
+
+	//std::cout << "copy into: " << std::get<0>(params) << " from " << std::get<0>(key) << " " << std::get<1>(key) << " " << std::get<2>(key) << " to " << std::get<0>(key2) << " " << std::get<1>(key2) << " " << std::get<2>(key2) << "\n";
+	std::cout << "copy into: " << std::get<0>(params) << " from " << std::get<0>(key) << " " << std::get<1>(key) << " " << std::get<2>(key) << "\n";
+	//gridFrustrum[key] = gridTextureArray[std::get<0>(params)];
+
+	//memcpy(gridFrustrum[key], cache[std::get<1>(params)], texsize * texsize * texsize * 4 * (sizeof(char)));
+	memcpy(gridTextureArray[std::get<0>(params)], cache[std::get<1>(params)], texsize * texsize * texsize * 4 * (sizeof(char)));
 	//mainQuad[std::get<0>(params)].set_texture(gridTextureArray[std::get<0>(params)], 1);
 
+	//KeyTriple keyfinal = gridTextureArrayToKeys[std::get<0>(params)];
+	//callOpenGLSubImage(std::get<0>(keyfinal), std::get<1>(keyfinal), std::get<2>(keyfinal), 1);
+
+	callOpenGLSubImage(std::get<0>(key) , std::get<1>(key) , std::get<2>(key) , 0);
+	//callOpenGLSubImage(std::get<1>(key), std::get<0>(key), std::get<2>(key), 0); //invert axis
+	
 	if (DENOISE == 1)
 	{
 		//mainQuadNorm[std::get<0>(params)].set_texture(gridTextureArray[std::get<0>(params)], 1);
@@ -1375,11 +1248,14 @@ void initGridFrustrum()
 		{
 			for (int u = 0; u < ((GRIDEXTENSION * 2) + 1); u++)
 			{
-				key[z] = std::make_tuple(GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w]);
+				//key[z] = std::make_tuple(GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w]);
+				key[z] = std::make_tuple(GRID_y + gridoffsety[v], GRID_x + gridoffsetx[u], GRID_z + gridoffsetz[w]);
 
 				gridFrustrum[key[z]] = Render3dTextureAsArray(gridoffsetx[u], gridoffsety[v], gridoffsetz[w]);
 
-				gridTextureArray[z] = gridFrustrum[key[z]];
+				gridTextureArray[z] = gridFrustrum[key[z]]; //array with all the texture pointers
+				gridTextureArrayToKeys[z] = key[z];
+
 				//mainQuad[z].set_texture(gridFrustrum[key[z]]);
 
 				//if (DENOISE == 1) {
@@ -1427,11 +1303,6 @@ void initGridFrustrum()
 
 void initBigTexture()
 {
-	//callOpenGLSubImage(0, 0, 0);
-	//callOpenGLSubImage(-1, 1, 1);
-	//callOpenGLSubImage(0, 1, 1);
-	//callOpenGLSubImage(1, 1, 1);
-	
 	KeyTriple key[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
 
 	for (int w = 0; w < ((GRIDEXTENSION * 2) + 1); w++)
@@ -1450,17 +1321,20 @@ void initBigTexture()
 				//{
 				//	mainQuadNorm[z].set_texture(emptyTexture);
 				//}
-				std::cout << "Rfreshing " << GRID_x + gridoffsetx[u] << " " << GRID_y + gridoffsety[v] << " " << GRID_z + gridoffsetz[w] << "\n";
-				callOpenGLSubImage(GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w]); 
-				//callOpenGLSubImage(GRID_y + gridoffsety[v], GRID_x + gridoffsetx[u], GRID_z + gridoffsetz[w]);
-
+				
+				//callOpenGLSubImage(GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w]); 
 			}
 		}
 	}
+
+	callOpenGLSubImage(GRID_x + gridoffsetx[1], GRID_y + gridoffsety[0], GRID_z + gridoffsetz[0], 0);
 }
 
 void refreshGridFrustrum()
 {
+	GridFrustrum cache = gridFrustrum;
+	gridFrustrum.clear();
+
 	KeyTriple key[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
 
 	int z = 0;
@@ -1470,29 +1344,33 @@ void refreshGridFrustrum()
 		{
 			for (int u = 0; u < ((GRIDEXTENSION * 2) + 1); u++)
 			{
-				key[z] = std::make_tuple(GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w]);
+				//key[z] = std::make_tuple(GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w]);
+				key[z] = std::make_tuple(GRID_x + gridoffsety[v], GRID_y + gridoffsetx[u], GRID_z + gridoffsetz[w]); //inverted axis
+				//key[z] = std::make_tuple(gridoffsety[v], gridoffsetx[u], gridoffsetz[w]);
+				//KeyTriple anotherkey = std::make_tuple(gridoffsety[v], gridoffsetx[u], gridoffsetz[w]);
+				//gridFrustrum[anotherkey] = gridTextureArray[z];
+				gridFrustrum[key[z]] = gridTextureArray[z];
+
+				gridTextureArrayToKeys[z] = key[z];
 
 				//put empty texture on every quad
 				//prevent flickering on textures
-				mainQuad[z].set_texture(emptyTexture);
+				/*mainQuad[z].set_texture(emptyTexture);
 
 				if (DENOISE == 1)
 				{
 					mainQuadNorm[z].set_texture(emptyTexture);
-				}
+				}*/
 
 				z++;
 			}
 		}
 	}
 	
-	GridFrustrum cache = gridFrustrum;
-	gridFrustrum.clear();
-
 	std::vector<CopyTuple> copyarray;
 
 	std::vector<RefreshTuple> refresharray;
-
+	
 	z = 0;
 	for (int w = 0; w < ((GRIDEXTENSION * 2) + 1); w++)
 	{
@@ -1513,7 +1391,6 @@ void refreshGridFrustrum()
 			}
 		}
 	}
-		
 
 	////-----------debugging just refreshing everything----------------------
 	//refresharray.push_back(std::make_tuple(0, GRID_x - 1, GRID_y - 1, GRID_z - 1));
@@ -1569,15 +1446,12 @@ void refreshGridFrustrum()
 		_alltasks[std::get<0>(refresh)]->gridy = std::get<2>(refresh);
 		_alltasks[std::get<0>(refresh)]->gridz = std::get<3>(refresh);
 
-		//CleanTexture(gridTextureArray[std::get<0>(refresh)]);
-		//gridTextureArray[std::get<0>(refresh)]->set_clear_color((0.0, 0.0, 0.0, 0.0));
-		//gridTextureArray[std::get<0>(refresh)]->clear_image();
 
-		GenericAsyncTask* refreshtask = new GenericAsyncTask("Refresh Grid", &renderParallelTextureTask, _alltasks[std::get<0>(refresh)]);
+		/*GenericAsyncTask* refreshtask = new GenericAsyncTask("Refresh Grid", &renderParallelTextureTask, _alltasks[std::get<0>(refresh)]);
 		
 		refreshtask->set_task_chain("renderchain");
 
-		taskMgr->add(refreshtask);
+		taskMgr->add(refreshtask);*/
 	}
 
 }
@@ -2269,9 +2143,6 @@ void MakeShadertoy(int argc, char *argv[])
 
 	initGridFrustrum();
 
-	//RenderShadows(0, 0, 0);
-
-	
 	SceneGraphAnalyzer sga;
 	sga.add_node(window->get_pixel_2d().node());
 	sga.write(std::cerr);
@@ -2290,20 +2161,56 @@ void MakeShadertoy(int argc, char *argv[])
 	GenericAsyncTask* modifytask = new GenericAsyncTask("Modify Grid", &modifyGrid, nullptr);
 	modifytask->set_task_chain("changevdbgrid");
 
-	GenericAsyncTask* refreshtask = new GenericAsyncTask("Refresh Grid", &refreshGrid, nullptr);
-	refreshtask->set_task_chain("changevdbgrid");
+	//GenericAsyncTask* refreshtask = new GenericAsyncTask("Refresh Grid", &refreshGrid, nullptr);
+	//refreshtask->set_task_chain("changevdbgrid");
 
 	
 	taskMgr->add(new GenericAsyncTask("Camera Motion", &cameraMotionTask, nullptr));
 	taskMgr->add(modifytask);
-	taskMgr->add(refreshtask);
+	//taskMgr->add(refreshtask);
 
+	int state = 0;
 	// This is a simpler way to do stuff every frame,
 	// if you're too lazy to create a task.
 	Thread *current_thread = Thread::get_current_thread();
 	while (framework.do_frame(current_thread)) {
 		// Step the interval manager
 		CIntervalManager::get_global_ptr()->step();
+
+		//horrible way to load a texture on the first frame
+		switch (state)
+		{
+			case 0:
+			{
+				if (glTextureSubImage3D == 0) {
+					glTextureSubImage3D = (PFNGLTEXTURESUBIMAGE3DPROC)GetAnyGLFuncAddress("glTextureSubImage3D");
+				}
+				else {
+					state = 1;
+				}
+				break;
+			}
+			case 1:
+			{
+				initBigTexture();
+				state = 2;
+				break;
+			}
+			default:
+			{
+				break;
+			}
+			
+			
+		}
+
+		if (*pREFRESHGRID)
+		{
+			mutex.acquire();
+			refreshGridFrustrum();
+			*pREFRESHGRID = false;
+			mutex.release();
+		}
 	}
 
 	framework.close_framework();
@@ -2311,11 +2218,9 @@ void MakeShadertoy(int argc, char *argv[])
 	delete grid;
 }
 
-void callOpenGLSubImage(int posx, int posy, int posz)
+void callOpenGLSubImage(int posx, int posy, int posz, int debug)
 {
-	PFNGLTEXTURESUBIMAGE3DPROC glTextureSubImage3D = (PFNGLTEXTURESUBIMAGE3DPROC)GetAnyGLFuncAddress("glTextureSubImage3D");
-
-	std::cout << "Texture gl function address: " << (int)glTextureSubImage3D << "\n";
+	//std::cout << "Texture gl function address: " << (int)glTextureSubImage3D << "\n";
 	PT(GraphicsStateGuardianBase) gsg = mainWindow->get_graphics_window()->get_gsg();
 	GLTextureContext *GLtex = DCAST(GLTextureContext, mainQuad[0].get_texture()->prepare_now(0, gsg->get_prepared_objects(), gsg));
 	GLuint texA = GLtex->_index;
@@ -2323,7 +2228,7 @@ void callOpenGLSubImage(int posx, int posy, int posz)
 	GLuint wi = GLtex->_width;
 	GLuint he = GLtex->_height;
 	GLuint de = GLtex->_depth;
-	std::cout << "Texture gl id: " << texA << " int format: " << internal_format << " " << wi << " " << he << " " << de << "\n";
+	//std::cout << "Texture gl id: " << texA << " int format: " << internal_format << " " << wi << " " << he << " " << de << "\n";
 
 
 	unsigned char * tex;
@@ -2333,15 +2238,31 @@ void callOpenGLSubImage(int posx, int posy, int posz)
 	int centery = GRIDEXTENSION;
 	int centerz = GRIDEXTENSION;
 
-	int finalposx = (centerx - posx) * TEXTURESIZE;
-	int finalposy = (centery + posy) * TEXTURESIZE;
-	int finalposz = (centerz - posz) * TEXTURESIZE;
+	int finalposx = (centerx - posx + GRID_x) * TEXTURESIZE;
+	int finalposy = (centery + posy - GRID_y) * TEXTURESIZE;
+	int finalposz = (centerz - posz + GRID_z) * TEXTURESIZE;
 
+	//1 -- 1 = 2 = 64
+    //1 + -1 = 0 = 0
+	//1 -- 1 = 2 = 64
 
-	//KeyTriple key = std::make_tuple(posx, posy, posz);
-	KeyTriple key = std::make_tuple(posy, posx, posz);
+	//1 -  0 = 0 = 0
+    //1 +- 1 = 0 = 0
+    //1 -- 1 = 2 = 64 
+
+	//KeyTriple key = std::make_tuple(posy, posx, posz);
+	KeyTriple key = std::make_tuple(posx, posy, posz);
+
+	if (debug == 0){
 	tex = gridFrustrum[key];
+	}
+	else
+	{
+		tex = gridTextureArray[1];
+	}
+	//tex = gridTextureArray[1];
 
+	//std::cout << "memory to access: " << (int)tex << "\n";
 	glBindTexture(GL_TEXTURE_3D, texA);
 	glTextureSubImage3D(texA, 0, finalposx, finalposy, finalposz, TEXTURESIZE, TEXTURESIZE, TEXTURESIZE, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)tex);
 

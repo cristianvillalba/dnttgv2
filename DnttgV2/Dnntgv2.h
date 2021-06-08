@@ -55,9 +55,7 @@ unsigned char * Render3dTextureAsArray(int gridx, int griy, int gridz);
 PT(Texture) Render3dBigTexture();
 void refresh3dTexture();
 void refresh3dTexture(unsigned char * texture, int gridx, int gridy, int gridz);
-PT(Texture) RenderShadows(int gridx, int gridy, int gridz);
-void refreshShadowTexture();
-void callOpenGLSubImage(int posx, int posy, int posz);
+void callOpenGLSubImage(int posx, int posy, int posz, int debug);
 
 
 //Headers
@@ -73,8 +71,6 @@ void InitShader(int index, NodePath node, int type);
 void CopyTexture(PT(Texture) origin, PT(Texture) destination);
 void CopyAndRefreshTexture(CopyTuple params, GridFrustrum cache);
 void CleanTexture(PT(Texture) origin);
-void ZOrdering();
-bool CompareZPos(Zorder n1, Zorder n2);
 
 
 
