@@ -1050,31 +1050,35 @@ void CopyAndRefreshTexture(CopyTuple params, GridFrustrum cache)
 {
 	int texsize = TEXTURESIZE;
 
-	//gridTextureArray[std::get<0>(params)] = cache[std::get<1>(params)];
-	
-
 	KeyTriple key = std::get<1>(params);
-	//KeyTriple key2 = std::get<2>(params);
-
-	//std::cout << "copy into: " << std::get<0>(params) << " from " << std::get<0>(key) << " " << std::get<1>(key) << " " << std::get<2>(key) << " to " << std::get<0>(key2) << " " << std::get<1>(key2) << " " << std::get<2>(key2) << "\n";
-	std::cout << "copy into: " << std::get<0>(params) << " from " << std::get<0>(key) << " " << std::get<1>(key) << " " << std::get<2>(key) << "\n";
-	//gridFrustrum[key] = gridTextureArray[std::get<0>(params)];
-
-	//memcpy(gridFrustrum[key], cache[std::get<1>(params)], texsize * texsize * texsize * 4 * (sizeof(char)));
+	
+	//std::cout << "copy into: " << std::get<0>(params) << " from " << std::get<0>(key) << " " << std::get<1>(key) << " " << std::get<2>(key) << "\n";
 	memcpy(gridTextureArray[std::get<0>(params)], cache[std::get<1>(params)], texsize * texsize * texsize * 4 * (sizeof(char)));
-	//mainQuad[std::get<0>(params)].set_texture(gridTextureArray[std::get<0>(params)], 1);
-
-	//KeyTriple keyfinal = gridTextureArrayToKeys[std::get<0>(params)];
-	//callOpenGLSubImage(std::get<0>(keyfinal), std::get<1>(keyfinal), std::get<2>(keyfinal), 1);
-
+	
 	callOpenGLSubImage(std::get<0>(key) , std::get<1>(key) , std::get<2>(key) , 0);
-	//callOpenGLSubImage(std::get<1>(key), std::get<0>(key), std::get<2>(key), 0); //invert axis
 	
 	if (DENOISE == 1)
 	{
 		//mainQuadNorm[std::get<0>(params)].set_texture(gridTextureArray[std::get<0>(params)], 1);
 	}
 
+}
+
+void RefreshTexture(RefreshTuple params)
+{
+	RefreshTuple refresh = params;
+
+	int index = std::get<0>(refresh);
+	int gridx = std::get<1>(refresh);
+	int gridy = std::get<2>(refresh);
+	int gridz = std::get<3>(refresh);
+
+	free(gridTextureArray[index]);
+
+	//Axis inverted
+	gridTextureArray[index] = Render3dTextureAsArray(gridy, gridx, gridz);
+
+	callOpenGLSubImage(gridx, gridy, gridz, 0);
 }
 
 //Dot rasterizer spinning
@@ -1322,12 +1326,12 @@ void initBigTexture()
 				//	mainQuadNorm[z].set_texture(emptyTexture);
 				//}
 				
-				//callOpenGLSubImage(GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w]); 
+				callOpenGLSubImage(GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w], 0); 
 			}
 		}
 	}
 
-	callOpenGLSubImage(GRID_x + gridoffsetx[1], GRID_y + gridoffsety[0], GRID_z + gridoffsetz[0], 0);
+	//callOpenGLSubImage(GRID_x + gridoffsetx[1], GRID_y + gridoffsety[0], GRID_z + gridoffsetz[0], 0);
 }
 
 void refreshGridFrustrum()
@@ -1344,11 +1348,9 @@ void refreshGridFrustrum()
 		{
 			for (int u = 0; u < ((GRIDEXTENSION * 2) + 1); u++)
 			{
-				//key[z] = std::make_tuple(GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w]);
+				//invert x and y axis
 				key[z] = std::make_tuple(GRID_x + gridoffsety[v], GRID_y + gridoffsetx[u], GRID_z + gridoffsetz[w]); //inverted axis
-				//key[z] = std::make_tuple(gridoffsety[v], gridoffsetx[u], gridoffsetz[w]);
-				//KeyTriple anotherkey = std::make_tuple(gridoffsety[v], gridoffsetx[u], gridoffsetz[w]);
-				//gridFrustrum[anotherkey] = gridTextureArray[z];
+
 				gridFrustrum[key[z]] = gridTextureArray[z];
 
 				gridTextureArrayToKeys[z] = key[z];
@@ -1384,7 +1386,8 @@ void refreshGridFrustrum()
 				}
 				else
 				{
-					refresharray.push_back(std::make_tuple(z, GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w]));
+					//invert x and y axis
+					refresharray.push_back(std::make_tuple(z, GRID_x + gridoffsety[v], GRID_y + gridoffsetx[u], GRID_z + gridoffsetz[w]));
 				}
 
 				z++;
@@ -1446,6 +1449,7 @@ void refreshGridFrustrum()
 		_alltasks[std::get<0>(refresh)]->gridy = std::get<2>(refresh);
 		_alltasks[std::get<0>(refresh)]->gridz = std::get<3>(refresh);
 
+		RefreshTexture(refresh);
 
 		/*GenericAsyncTask* refreshtask = new GenericAsyncTask("Refresh Grid", &renderParallelTextureTask, _alltasks[std::get<0>(refresh)]);
 		

@@ -70,6 +70,7 @@ void GenerateTextureBuffer(int w, int h, WindowFramework * window, NodePath s);
 void InitShader(int index, NodePath node, int type);
 void CopyTexture(PT(Texture) origin, PT(Texture) destination);
 void CopyAndRefreshTexture(CopyTuple params, GridFrustrum cache);
+void RefreshTexture(RefreshTuple params);
 void CleanTexture(PT(Texture) origin);
 
 
