@@ -1,5 +1,6 @@
 #pragma once
 #include <tuple>
+#include <queue>
 
 using std::chrono::duration;
 using std::chrono::duration_cast;
@@ -21,6 +22,19 @@ struct Zorder {
 	NodePath quad;
 	NodePath quadNorm;
 	int index;
+};
+
+//---Support structures
+struct TaskArgs {
+	int index;
+	int gridx;
+	int gridy;
+	int gridz;
+};
+
+struct CopyArgs {
+	int index;
+	PT(Texture) data;
 };
 
 void MakeBunny(int argc, char *argv[]);
@@ -69,9 +83,10 @@ void GenerateBillboard(int w, int h, WindowFramework * window, int index, bool u
 void GenerateTextureBuffer(int w, int h, WindowFramework * window, NodePath s);
 void InitShader(int index, NodePath node, int type);
 void CopyTexture(PT(Texture) origin, PT(Texture) destination);
-void CopyAndRefreshTexture(CopyTuple params, GridFrustrum cache);
+void CopyAndRefreshTexture(CopyTuple params, GridFrustrum cache, std::queue<TaskArgs> * copyQueue);
 void RefreshTexture(RefreshTuple params);
 void CleanTexture(PT(Texture) origin);
+unsigned char * CleanTextureArray();
 
 
 

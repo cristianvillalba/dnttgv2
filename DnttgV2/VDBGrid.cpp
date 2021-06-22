@@ -191,12 +191,12 @@ int VDBGrid::initGrid()
 
 
 	//for debug purposes
-	spawnSphere(LVector3f(0, 1000, 1500), 200.0); //axis are inverted  looks like 1000 is middle, 
+	spawnSphere(LVector3f(0, 1000, 1000), 200.0); //axis are inverted  looks like 1000 is middle, 
 										      //and extension of grid is 1000 units
 										      // also y axis is pointing negative on UP vector
 
-	spawnSphere(LVector3f(-2500, 1000, 1000), 200.0);
-	//spawnSphere(LVector3f(-1000, 0, -1000), 100.0);
+	spawnSphere(LVector3f( 1000, 1000, 1000), 100.0);
+	spawnSphere(LVector3f( 2000, 1000, 1000), 50.0);
 
 	spawnBox(LVector3f(0, -500, 0));
 
