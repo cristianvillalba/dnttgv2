@@ -252,7 +252,7 @@ void backCamera(const Event* eventPtr, void* dataPtr)
 	{
 		BACKWARDS = true;
 	}
-	
+
 }
 
 void backCameraUp(const Event* eventPtr, void* dataPtr)
@@ -368,7 +368,7 @@ void spawnSphere(const Event* eventPtr, void* dataPtr)
 }
 
 
-AsyncTask::DoneStatus modifyGrid(GenericAsyncTask *task, void *data) 
+AsyncTask::DoneStatus modifyGrid(GenericAsyncTask *task, void *data)
 {
 	if (SPAWN)
 	{
@@ -386,7 +386,7 @@ AsyncTask::DoneStatus modifyGrid(GenericAsyncTask *task, void *data)
 		grid->spawnSphere(fw, 200.0f);
 
 		//refresh3dTexture();
-		
+
 		refresh3dTexture(gridTextureArray[13], GRID_x, GRID_y, GRID_z);//only refresh center
 		//gridTextureArray[13] = Render3dTexture(GRID_x, GRID_y, GRID_z);
 
@@ -446,17 +446,17 @@ PT(Texture) Render3dTexture(int gridx, int gridy, int gridz)
 
 				//translate(500.0, 0, 0, &x, &y, &z);
 				//float data = grid->getValue(x, y, z);
-				float data = grid->getValue(x - gridx * 1000,  y - gridy * 1000, z - gridz * 1000);
-	
-				if (data > 0 )
+				float data = grid->getValue(x - gridx * 1000, y - gridy * 1000, z - gridz * 1000);
+
+				if (data > 0)
 				{
-					r = 1.0f ;
-					g = 1.0f ;
+					r = 1.0f;
+					g = 1.0f;
 				}
 
 				if (BOUNDINGBOX == 1)
 				{
-					if ((i == 0 || i == (texsize - 1)) && (k == 0 || k == (texsize - 1)) || 
+					if ((i == 0 || i == (texsize - 1)) && (k == 0 || k == (texsize - 1)) ||
 						(j == 0 || j == (texsize - 1)) && (k == 0 || k == (texsize - 1)) ||
 						(i == 0 && j == 0) || (i == 0 && j == (texsize - 1)) ||
 						(i == (texsize - 1) && j == 0) || (i == (texsize - 1) && j == (texsize - 1))
@@ -466,7 +466,7 @@ PT(Texture) Render3dTexture(int gridx, int gridy, int gridz)
 						g = 1.0f;
 					}
 				}
-			
+
 				//int flipy = -j + texsize - 1;
 				//std::cout << flipy << "\n";
 
@@ -510,7 +510,7 @@ unsigned char * Render3dTextureAsArray(int gridx, int gridy, int gridz)
 			{
 				//This is good for index sample
 				float x = (((float)i / texsize) - 0.5f) * -1000.0f; //invert axis
-				float y = (((float)j / texsize) - 0.5f) * 1000.0f; 
+				float y = (((float)j / texsize) - 0.5f) * 1000.0f;
 				float z = (((float)k / texsize) - 0.5f) * 1000.0f;
 
 				//this is good for world coordinates sample
@@ -523,7 +523,7 @@ unsigned char * Render3dTextureAsArray(int gridx, int gridy, int gridz)
 				int b = 0;
 
 				//float data = grid->getValue(x - gridx * 1000, y - gridy * 1000, z - gridz * 1000);
-				float data = grid->getValue( y - gridy * 1000, x - gridx * 1000, z - gridz * 1000);
+				float data = grid->getValue(y - gridy * 1000, x - gridx * 1000, z - gridz * 1000);
 
 				if (data > 0)
 				{
@@ -552,7 +552,7 @@ unsigned char * Render3dTextureAsArray(int gridx, int gridy, int gridz)
 			}
 		}
 	}
-	
+
 	return tex;
 }
 
@@ -753,7 +753,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 	double angleradians = angledegrees * (3.14 / 180.0);
 	//camera.set_pos(1 * sin(angleradians), 0, 1*cos(angleradians) + CAM_z);//orbit around center
 
-	
+
 	if (FORWARD)
 	{
 		LVector3f fw = mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, -1.0));
@@ -862,42 +862,42 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 	ANGLEDEGREES = ANGLEDEGREES + SPINVEL * globalClock->get_dt();
 
 
-	if (nCAM_x > 0.5 * GRID_SCALE || nCAM_x < -0.5 * GRID_SCALE  ||
-		nCAM_y > 0.5 * GRID_SCALE || nCAM_y < -0.5 * GRID_SCALE  ||
+	if (nCAM_x > 0.5 * GRID_SCALE || nCAM_x < -0.5 * GRID_SCALE ||
+		nCAM_y > 0.5 * GRID_SCALE || nCAM_y < -0.5 * GRID_SCALE ||
 		nCAM_z > 0.5 * GRID_SCALE || nCAM_z < -0.5 * GRID_SCALE
 		)
 	{
 		if (nCAM_x > 0.5 * GRID_SCALE)
 		{
 			GRID_x--;
-			nCAM_x = -0.5 * GRID_SCALE  + abs(0.5 * GRID_SCALE - nCAM_x);
+			nCAM_x = -0.5 * GRID_SCALE + abs(0.5 * GRID_SCALE - nCAM_x);
 		}
 		else if (nCAM_x < -0.5 * GRID_SCALE)
 		{
 			GRID_x++;
-			nCAM_x = 0.5 * GRID_SCALE - abs(-0.5 * GRID_SCALE  - nCAM_x);
+			nCAM_x = 0.5 * GRID_SCALE - abs(-0.5 * GRID_SCALE - nCAM_x);
 		}
 
 		if (nCAM_y > 0.5 * GRID_SCALE)
 		{
 			GRID_y--;
-			nCAM_y = -0.5 * GRID_SCALE  + abs(0.5 * GRID_SCALE  - nCAM_y);
+			nCAM_y = -0.5 * GRID_SCALE + abs(0.5 * GRID_SCALE - nCAM_y);
 		}
-		else if (nCAM_y < -0.5 * GRID_SCALE )
+		else if (nCAM_y < -0.5 * GRID_SCALE)
 		{
 			GRID_y++;
-			nCAM_y = 0.5 * GRID_SCALE  + abs(-0.5 * GRID_SCALE - nCAM_y);
+			nCAM_y = 0.5 * GRID_SCALE + abs(-0.5 * GRID_SCALE - nCAM_y);
 		}
 
 		if (nCAM_z > 0.5 * GRID_SCALE)
 		{
 			GRID_z--;
-			nCAM_z = -0.5 * GRID_SCALE  + abs(0.5 * GRID_SCALE  - nCAM_z);
+			nCAM_z = -0.5 * GRID_SCALE + abs(0.5 * GRID_SCALE - nCAM_z);
 		}
 		else if (nCAM_z < -0.5 * GRID_SCALE)
 		{
 			GRID_z++;
-			nCAM_z = 0.5 * GRID_SCALE  - abs(-0.5 * GRID_SCALE  - nCAM_z);
+			nCAM_z = 0.5 * GRID_SCALE - abs(-0.5 * GRID_SCALE - nCAM_z);
 		}
 
 		if (!*pREFRESHGRID)
@@ -920,7 +920,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 	LVector3f lookAtDirection = mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, 1));
 
 	//update all quads
-	
+
 	int z = 0;
 
 	//float scalevox = sin(time * 0.05f)*5.0f + 5.0f;
@@ -963,7 +963,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 			}
 		}
 	}*/
-	
+
 
 	//std::cout << "GRID x: " << GRID_x << " y: " << GRID_y << " z: " << GRID_z << "\n";
 	//std::cout << "x: " << CAM_x << " y: " << CAM_y << " z: " << CAM_z << "\n";
@@ -990,7 +990,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 			mainFramework->get_graphics_engine()->extract_texture_data(prevframe_texture, mainWindow->get_graphics_output()->get_gsg());
 		}
 	}
-	
+
 	return AsyncTask::DS_cont;
 }
 
@@ -999,8 +999,8 @@ AsyncTask::DoneStatus cameraTask(GenericAsyncTask *task, void *data) {
 	double time = globalClock->get_real_time();
 	double angledegrees = time * 6.0;
 	double angleradians = angledegrees * (3.14 / 180.0);
-	
-	
+
+
 	refresh3dTexture();
 
 	// Tell the task manager to continue this task the next frame.
@@ -1053,7 +1053,7 @@ void CopyAndRefreshTexture(CopyTuple params, GridFrustrum cache, std::queue<Task
 
 	copyQueue->push(args);
 
-	
+
 	if (DENOISE == 1)
 	{
 		//mainQuadNorm[std::get<0>(params)].set_texture(gridTextureArray[std::get<0>(params)], 1);
@@ -1090,12 +1090,12 @@ AsyncTask::DoneStatus spinRasterizerTask(GenericAsyncTask *task, void *data) {
 	double time = globalClock->get_real_time();
 	double angledegrees = time * 24.0;
 	double angleradians = angledegrees * (3.14 / 180.0);
-	
+
 	//const auto startTime = high_resolution_clock::now();
 
 	GeomVertexWriter color(vdata, "color");
 
-	#pragma omp parallel for
+#pragma omp parallel for
 	for (int i = 0; i < WIDTH * HEIGHT; i++)
 	{
 		int x = i % WIDTH;
@@ -1163,7 +1163,7 @@ AsyncTask::DoneStatus spinRasterizerTask(GenericAsyncTask *task, void *data) {
 		color.set_row(i);
 		color.set_data4(r, g, b, 1);
 	}
-	
+
 
 	/*
 	Normal raycast no parallel execution
@@ -1174,9 +1174,9 @@ AsyncTask::DoneStatus spinRasterizerTask(GenericAsyncTask *task, void *data) {
 		for (int j = 0; j < WIDTH; j++)
 		{
 			//Inigo quilez camera code
-			LVector2f pixel = LVector2f((2.0f * j - WIDTH)  / (float) HEIGHT, 
+			LVector2f pixel = LVector2f((2.0f * j - WIDTH)  / (float) HEIGHT,
 										(2.0f * i - HEIGHT) / (float) HEIGHT);
-			
+
 			LVector3f rayorigin = LVector3f(1000.0f * sin(angleradians),
 											200.0f,
 											1000.0f * cos(angleradians));
@@ -1206,7 +1206,7 @@ AsyncTask::DoneStatus spinRasterizerTask(GenericAsyncTask *task, void *data) {
 
 			LVector3f raydirection = px + py + pz;
 			raydirection.normalize();
-			
+
 			//raymarch
 			float r = 0.0f;
 			float g = 0.0f;
@@ -1233,7 +1233,7 @@ AsyncTask::DoneStatus spinRasterizerTask(GenericAsyncTask *task, void *data) {
 				}
 			}
 			color.set_data4(r, g, b, 1);
-			
+
 		}
 	}
 	*/
@@ -1261,7 +1261,6 @@ void initGridFrustrum()
 				gridFrustrum[key[z]] = Render3dTextureAsArray(gridoffsetx[u], gridoffsety[v], gridoffsetz[w]);
 
 				gridTextureArray[z] = gridFrustrum[key[z]]; //array with all the texture pointers
-				gridTextureArrayBuffer[z] = (unsigned char *)malloc(TEXTURESIZE * TEXTURESIZE * TEXTURESIZE * 4 * (sizeof(char)));;
 				gridTextureArrayToKeys[z] = key[z];
 
 				//mainQuad[z].set_texture(gridFrustrum[key[z]]);
@@ -1329,8 +1328,8 @@ void initBigTexture()
 				//{
 				//	mainQuadNorm[z].set_texture(emptyTexture);
 				//}
-				
-				callOpenGLSubImage(GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w], 0); 
+
+				callOpenGLSubImage(GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w], 0);
 			}
 		}
 	}
@@ -1345,6 +1344,10 @@ void refreshGridFrustrum()
 
 	KeyTriple key[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
 
+	std::vector<CopyTuple> copyarray;
+
+	std::vector<RefreshTuple> refresharray;
+
 	int z = 0;
 	for (int w = 0; w < ((GRIDEXTENSION * 2) + 1); w++)
 	{
@@ -1355,9 +1358,20 @@ void refreshGridFrustrum()
 				//invert x and y axis
 				key[z] = std::make_tuple(GRID_x + gridoffsety[v], GRID_y + gridoffsetx[u], GRID_z + gridoffsetz[w]); //inverted axis
 
-				gridFrustrum[key[z]] = gridTextureArray[z];
-
 				gridTextureArrayToKeys[z] = key[z];
+
+				if (cache.count(key[z]) == 1)
+				{
+					gridTextureArrayBuffer[z] = (unsigned char *)malloc(TEXTURESIZE * TEXTURESIZE * TEXTURESIZE * 4 * (sizeof(char)));
+					gridFrustrum[key[z]] = gridTextureArrayBuffer[z];
+					copyarray.push_back(std::make_tuple(z, key[z]));
+				}
+				else
+				{
+					gridFrustrum[key[z]] = gridTextureArray[z];
+					//invert x and y axis
+					refresharray.push_back(std::make_tuple(z, GRID_x + gridoffsety[v], GRID_y + gridoffsetx[u], GRID_z + gridoffsetz[w]));
+				}
 
 				//put empty texture on every quad
 				//prevent flickering on textures
@@ -1372,32 +1386,7 @@ void refreshGridFrustrum()
 			}
 		}
 	}
-	
-	std::vector<CopyTuple> copyarray;
 
-	std::vector<RefreshTuple> refresharray;
-	
-	z = 0;
-	for (int w = 0; w < ((GRIDEXTENSION * 2) + 1); w++)
-	{
-		for (int v = 0; v < ((GRIDEXTENSION * 2) + 1); v++)
-		{
-			for (int u = 0; u < ((GRIDEXTENSION * 2) + 1); u++)
-			{
-				if (cache.count(key[z]) == 1)
-				{
-					copyarray.push_back(std::make_tuple(z, key[z]));
-				}
-				else
-				{
-					//invert x and y axis
-					refresharray.push_back(std::make_tuple(z, GRID_x + gridoffsety[v], GRID_y + gridoffsetx[u], GRID_z + gridoffsetz[w]));
-				}
-
-				z++;
-			}
-		}
-	}
 
 	////-----------debugging just refreshing everything----------------------
 	//refresharray.push_back(std::make_tuple(0, GRID_x - 1, GRID_y - 1, GRID_z - 1));
@@ -1448,7 +1437,7 @@ void refreshGridFrustrum()
 	while (copyQueue.size() > 0)
 	{
 		TaskArgs args = copyQueue.front();
-		memcpy(gridTextureArray[args.index] , gridTextureArrayBuffer[args.index], TEXTURESIZE * TEXTURESIZE * TEXTURESIZE * 4 * (sizeof(char)));
+		gridTextureArray[args.index] = gridTextureArrayBuffer[args.index];
 
 		renderQueue.push(args);
 		copyQueue.pop();
@@ -1457,16 +1446,16 @@ void refreshGridFrustrum()
 	for (int i = 0; i < refresharray.size(); i++)
 	{
 		RefreshTuple refresh = refresharray.at(i);
-		
-		_alltasks[std::get<0>(refresh)]->index = std::get<0>(refresh);
+
+		/*_alltasks[std::get<0>(refresh)]->index = std::get<0>(refresh);
 		_alltasks[std::get<0>(refresh)]->gridx = std::get<1>(refresh);
 		_alltasks[std::get<0>(refresh)]->gridy = std::get<2>(refresh);
-		_alltasks[std::get<0>(refresh)]->gridz = std::get<3>(refresh);
+		_alltasks[std::get<0>(refresh)]->gridz = std::get<3>(refresh);*/
 
 		RefreshTexture(refresh);
 
 		/*GenericAsyncTask* refreshtask = new GenericAsyncTask("Refresh Grid", &renderParallelTextureTask, _alltasks[std::get<0>(refresh)]);
-		
+
 		refreshtask->set_task_chain("renderchain");
 
 		taskMgr->add(refreshtask);*/
@@ -1625,7 +1614,7 @@ void MakeBunny(int argc, char *argv[])
 	camera = window->get_camera_group();
 	//window->setup_trackball();//move camera with mouse, errors while trying to move the camera from code directly
 	camera.set_pos(0, -3, 0);
-	camera.look_at(0, 0, 0);	
+	camera.look_at(0, 0, 0);
 
 	//PT(FrameRateMeter) meter = new FrameRateMeter("fps");
 	//meter->setup_window(window->get_graphics_output());
@@ -1861,7 +1850,7 @@ void InitShader(int index, NodePath nodePath, int type)
 	int u = (int)(index % ((GRIDEXTENSION * 2) + 1)) - GRIDEXTENSION;
 	int v = (int)(index / ((GRIDEXTENSION * 2) + 1)) % ((GRIDEXTENSION * 2) + 1) - GRIDEXTENSION;
 	int w = (int)(index / (((GRIDEXTENSION * 2) + 1) * ((GRIDEXTENSION * 2) + 1))) - GRIDEXTENSION;
-	
+
 	u = u - GRID_x;
 	v = v - GRID_y;
 	w = w - GRID_z;
@@ -1869,11 +1858,11 @@ void InitShader(int index, NodePath nodePath, int type)
 	float distance = sqrtf(u * u + v * v + w * w) * -100.0f + 200.0;
 
 	//std::cout << " z " << index << " distance: " << distance << "\n";
-	
+
 	nodePath.set_bin("fixed", (int)distance);
 	//nodePath.set_bin("fixed", (int) (index / ((GRIDEXTENSION * 2) + 1))); //I put 100 in the center quad WARN
 
-	
+
 }
 
 void GenerateBillboard(int width, int height, WindowFramework * window, int index, bool useBuffer, NodePath parentNode, int centerx, int centery, int type)
@@ -1921,7 +1910,7 @@ void GenerateBillboard(int width, int height, WindowFramework * window, int inde
 
 	if (useBuffer)
 	{
-		NodePath nodePath = parentNode.attach_new_node(node);		
+		NodePath nodePath = parentNode.attach_new_node(node);
 		InitShader(index, nodePath, type);
 
 		nodePath.set_pos(centerx, 0, centery);
@@ -1983,7 +1972,7 @@ void GeneratePrePassBillboard(int width, int height, WindowFramework * window, N
 	node->add_geom(geom);
 
 	NodePath nodePath = parentNode.attach_new_node(node);
-	
+
 	nodePath.set_texture(rendertexture01);
 
 	PT(Shader) denoise = Shader::load(Shader::ShaderLanguage::SL_GLSL, "shaders/denoise.vert", "shaders/denoise.frag");
@@ -2037,7 +2026,7 @@ void GenerateTextureBuffer(int width, int height, WindowFramework * window, Node
 
 	//Debug only - test if we can add nodes to myscene
 	//testscene.reparent_to(myscene);
-	
+
 	PT(GraphicsOutput) mybuffernorm;
 	PT(Texture) mytexturenorm;
 	PT(Camera) mycameranorm;
@@ -2062,7 +2051,7 @@ void GenerateTextureBuffer(int width, int height, WindowFramework * window, Node
 	lensnorm->set_near_far(-1000, 1000);
 	mycameranorm->set_lens(lensnorm);
 
-	
+
 	PT(GraphicsOutput) mybufferaa;
 	PT(Texture) mytextureaa;
 	PT(Camera) mycameraaa;
@@ -2092,7 +2081,7 @@ void GenerateTextureBuffer(int width, int height, WindowFramework * window, Node
 	rendertexture03 = mytextureaa;
 
 
-	if (DENOISE == 0){
+	if (DENOISE == 0) {
 		GenerateMainBillboard(width, height, window, mytexture);
 	}
 	else
@@ -2177,7 +2166,7 @@ void MakeShadertoy(int argc, char *argv[])
 		prevframe_texture->setup_2d_texture(INTERNALRES, INTERNALRES, Texture::T_unsigned_byte, Texture::F_rgba8);
 		prevframe_texture->set_clear_color(LColor(0, 0, 0, 0));
 	}
-	
+
 	// Get the camera and store it in a variable.
 	camera = window->get_camera_group();
 	camera.set_pos(0, 0, 1);
@@ -2227,7 +2216,7 @@ void MakeShadertoy(int argc, char *argv[])
 	GenericAsyncTask* refreshtask = new GenericAsyncTask("Refresh Grid", &refreshGrid, nullptr);
 	refreshtask->set_task_chain("changevdbgrid");
 
-	
+
 	taskMgr->add(new GenericAsyncTask("Camera Motion", &cameraMotionTask, nullptr));
 	taskMgr->add(modifytask);
 	taskMgr->add(refreshtask);
@@ -2243,28 +2232,28 @@ void MakeShadertoy(int argc, char *argv[])
 		//horrible way to load a texture on the first frame
 		switch (state)
 		{
-			case 0:
-			{
-				if (glTextureSubImage3D == 0) {
-					glTextureSubImage3D = (PFNGLTEXTURESUBIMAGE3DPROC)GetAnyGLFuncAddress("glTextureSubImage3D");
-				}
-				else {
-					state = 1;
-				}
-				break;
+		case 0:
+		{
+			if (glTextureSubImage3D == 0) {
+				glTextureSubImage3D = (PFNGLTEXTURESUBIMAGE3DPROC)GetAnyGLFuncAddress("glTextureSubImage3D");
 			}
-			case 1:
-			{
-				initBigTexture();
-				state = 2;
-				break;
+			else {
+				state = 1;
 			}
-			default:
-			{
-				break;
-			}
-			
-			
+			break;
+		}
+		case 1:
+		{
+			initBigTexture();
+			state = 2;
+			break;
+		}
+		default:
+		{
+			break;
+		}
+
+
 		}
 
 		if (renderQueue.size() > 0) {
@@ -2308,8 +2297,8 @@ void callOpenGLSubImage(int posx, int posy, int posz, int debug)
 
 	KeyTriple key = std::make_tuple(posx, posy, posz);
 
-	if (debug == 0){
-	tex = gridFrustrum[key];
+	if (debug == 0) {
+		tex = gridFrustrum[key];
 	}
 	else
 	{
