@@ -43,7 +43,7 @@
 #define INTERNALRES 256 //internal texture resolution
 #define BUNNY 1 //old vs new raycaster
 #define BOUNDINGBOX 1 //bounding box of 3d texture
-#define TEXTURESIZE 32 //3d texture resolution
+#define TEXTURESIZE 64 //3d texture resolution
 #define GRIDEXTENSION 1 //how many side voxels this will render
 #define DENOISE 0 //denoising shader as an image post processing
 
@@ -118,7 +118,7 @@ int GRID_z = 0;
 //Grid parameters
 float GRID_SCALE = 10.0f;
 float TEXTURE_3D_EXTENSION = (GRIDEXTENSION * 2.0) + 1.0;
-float VOXEL_SIZE = 20.0f; //this number will divide the GRID_SCALE to get the actual voxel size
+float VOXEL_SIZE = 40.0f; //this number will divide the GRID_SCALE to get the actual voxel size
 
 //grid frustrum
 GridFrustrum gridFrustrum;
@@ -1073,7 +1073,10 @@ void RefreshTexture(RefreshTuple params)
 	free(gridTextureArray[index]);
 
 	//Axis inverted
-	gridTextureArray[index] = Render3dTextureAsArray(gridy, gridx, gridz);
+	gridTextureArray[index] = Render3dTextureAsArray(gridy, gridx, gridz); //invert axis
+
+	KeyTriple newkey = std::make_tuple(gridx, gridy, gridz);
+	gridFrustrum[newkey] = gridTextureArray[index];
 
 	TaskArgs args;
 	args.gridx = gridx;
@@ -1081,7 +1084,6 @@ void RefreshTexture(RefreshTuple params)
 	args.gridz = gridz;
 
 	renderQueue.push(args);
-	//callOpenGLSubImage(gridx, gridy, gridz, 0);
 }
 
 //Dot rasterizer spinning
@@ -1368,7 +1370,6 @@ void refreshGridFrustrum()
 				}
 				else
 				{
-					gridFrustrum[key[z]] = gridTextureArray[z];
 					//invert x and y axis
 					refresharray.push_back(std::make_tuple(z, GRID_x + gridoffsety[v], GRID_y + gridoffsetx[u], GRID_z + gridoffsetz[w]));
 				}
@@ -2307,6 +2308,8 @@ void callOpenGLSubImage(int posx, int posy, int posz, int debug)
 	//tex = gridTextureArray[1];
 
 	//std::cout << "memory to access: " << (int)tex << "\n";
+	//std::cout << " - " << centerx << " " << centery << " " <<  centerz << " " <<  GRID_x << " " <<  GRID_y << " " <<  GRID_z << "\n";
+	//std::cout << " x y z " << posx << " " << posy << " " << posz << " " << finalposx << " " << finalposy << " " << finalposz << " " << bigsize << "\n";
 	glBindTexture(GL_TEXTURE_3D, texA);
 	glTextureSubImage3D(texA, 0, finalposx, finalposy, finalposz, TEXTURESIZE, TEXTURESIZE, TEXTURESIZE, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)tex);
 
