@@ -26,20 +26,6 @@ struct Zorder {
 	int index;
 };
 
-//---Support structures
-struct TaskArgs {
-	int index;
-	int debug;
-	int gridx;
-	int gridy;
-	int gridz;
-};
-
-struct CopyArgs {
-	int index;
-	PT(Texture) data;
-};
-
 void MakeBunny(int argc, char *argv[]);
 void MakeShadertoy(int argc, char *argv[]);
 void print_results(const char *const tag,
@@ -73,7 +59,7 @@ PT(Texture) Render3dBigTexture();
 void refresh3dTexture();
 void refresh3dTexture(unsigned char * texture, int gridx, int gridy, int gridz);
 void refresh3dTextureAsArray(unsigned char * texture, int gridx, int gridy, int gridz);
-void callOpenGLSubImage(int posx, int posy, int posz, int debug);
+void callOpenGLSubImage(int posx, int posy, int posz, int debug, int quad);
 
 
 //Headers
@@ -86,8 +72,6 @@ void GeneratePrePassBillboard(int w, int h, WindowFramework * window, NodePath p
 void GenerateBillboard(int w, int h, WindowFramework * window, int index, bool useBuffer, NodePath parent, int centerx, int centery, int type);
 void GenerateTextureBuffer(int w, int h, WindowFramework * window, NodePath s);
 void InitShader(int index, NodePath node, int type);
-void CopyTexture(PT(Texture) origin, PT(Texture) destination);
-void CopyAndRefreshTexture(CopyTuple params, GridFrustrum cache, std::queue<TaskArgs> * copyQueue);
 //void RefreshTexture(RefreshTuple params);
 void RefreshTexture(KeyTriple params);
 void CleanTexture(PT(Texture) origin);

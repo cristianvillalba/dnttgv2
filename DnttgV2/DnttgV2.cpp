@@ -45,7 +45,7 @@
 #define BOUNDINGBOX 1 //bounding box of 3d texture
 #define TEXTURESIZE 32 //3d texture resolution
 #define GRIDEXTENSION 1 //how many side voxels this will render
-#define DENOISE 0 //denoising shader as an image post processing
+#define DENOISE 1 //denoising shader as an image post processing
 
 using std::chrono::duration;
 using std::chrono::duration_cast;
@@ -75,9 +75,6 @@ PT(Texture) bunn;
 PT(Texture) emptyTexture;
 unsigned char * emptyTextureArray;
 
-//to split the 3d texture - SLOW as HELL
-//NodePath mainQuad[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
-//NodePath mainQuadNorm[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
 NodePath mainQuad[1];
 NodePath mainQuadNorm[1];
 
@@ -153,13 +150,8 @@ bool* pREFRESHGRID = &REFRESHGRID;
 //Chain to parallel refreshing
 AsyncTaskChain * renderChain;
 
-
-TaskArgs* _alltasks[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
-CopyArgs* _copytasks[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
 std::queue<KeyTriple> renderQueue;
 std::queue<KeyTriple> refreshQueue;
-
-//---Support structures
 
 
 //---OpenGLExtensions
@@ -993,31 +985,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 		mainQuadNorm[z].set_shader_input("voxparams", LVector3f(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
 		//mainQuadNorm[z].set_shader_input("params", LVector3f(GRID_SCALE, scalevox, INTERNALRES));
 	}
-	/*
-	//refresh all splitter 3d textures - SLOW as HELL
-	for (int w = 0; w < ((GRIDEXTENSION * 2) + 1); w++)
-	{
-		for (int v = 0; v < ((GRIDEXTENSION * 2) + 1); v++)
-		{
-			for (int u = 0; u < ((GRIDEXTENSION * 2) + 1); u++)
-			{
-				mainQuad[z].set_shader_input("campos", camera.get_pos() - LVector3f(offsetvectorx[u], offsetvectory[v], offsetvectorz[w]) *( GRID_SCALE + offsetgrid));
-				mainQuad[z].set_shader_input("target", lookAtDirection - LVector3f(offsetvectorx[u], offsetvectory[v], offsetvectorz[w]) *( GRID_SCALE + offsetgrid));
-				mainQuad[z].set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
-
-				if (DENOISE == 1)
-				{
-					mainQuadNorm[z].set_shader_input("campos", camera.get_pos() - LVector3f(offsetvectorx[u], offsetvectory[v], offsetvectorz[w]) * (GRID_SCALE + offsetgrid));
-					mainQuadNorm[z].set_shader_input("target", lookAtDirection - LVector3f(offsetvectorx[u], offsetvectory[v], offsetvectorz[w]) * (GRID_SCALE + offsetgrid));
-					mainQuadNorm[z].set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
-				}
-
-				z++;
-			}
-		}
-	}*/
-
-
+	
 	//std::cout << "GRID x: " << GRID_x << " y: " << GRID_y << " z: " << GRID_z << "\n";
 	//std::cout << "x: " << CAM_x << " y: " << CAM_y << " z: " << CAM_z << "\n";
 	// Tell the task manager to continue this task the next frame.
@@ -1060,59 +1028,6 @@ AsyncTask::DoneStatus cameraTask(GenericAsyncTask *task, void *data) {
 	return AsyncTask::DS_cont;
 }
 
-AsyncTask::DoneStatus copyParallelTextureTask(GenericAsyncTask *task, void *data)
-{
-	CopyArgs* taskdata = (CopyArgs*)data;
-
-	//CopyTexture(taskdata->data, gridTextureArray[taskdata->index]);
-
-	return AsyncTask::DS_done;
-}
-
-AsyncTask::DoneStatus renderParallelTextureTask(GenericAsyncTask *task, void *data) {
-
-	TaskArgs* taskdata = (TaskArgs*)data;
-
-	//gridTextureArray[taskdata->index] = Render3dTexture(taskdata->gridx, taskdata->gridy, taskdata->gridz);
-
-	//std::cout << "vector index: " << taskdata->index <<"\n";
-
-	KeyTriple key = std::make_tuple(taskdata->gridx, taskdata->gridy, taskdata->gridz);
-	gridFrustrum[key] = gridTextureArray[taskdata->index];
-	//mainQuad[taskdata->index].set_texture(gridFrustrum[key]);
-
-	if (DENOISE == 1)
-	{
-		//mainQuadNorm[taskdata->index].set_texture(gridFrustrum[key]);
-	}
-
-	return AsyncTask::DS_done;
-}
-
-
-void CopyAndRefreshTexture(CopyTuple params, GridFrustrum cache, std::queue<TaskArgs> * copyQueue)
-{
-	int texsize = TEXTURESIZE;
-
-	KeyTriple key = std::get<1>(params);
-
-	memcpy(gridTextureArrayBuffer[std::get<0>(params)], cache[std::get<1>(params)], texsize * texsize * texsize * 4 * (sizeof(char)));
-
-	TaskArgs args;
-	args.gridx = std::get<0>(key);
-	args.gridy = std::get<1>(key);
-	args.gridz = std::get<2>(key);
-	args.index = std::get<0>(params);
-
-	copyQueue->push(args);
-
-
-	if (DENOISE == 1)
-	{
-		//mainQuadNorm[std::get<0>(params)].set_texture(gridTextureArray[std::get<0>(params)], 1);
-	}
-
-}
 
 void RefreshTexture(KeyTriple params)
 {
@@ -1301,17 +1216,10 @@ void initGridFrustrum()
 			{
 				key[z] = std::make_tuple(GRID_y + gridoffsety[v], GRID_x + gridoffsetx[u], GRID_z + gridoffsetz[w]);
 
-				//gridFrustrum[key[z]] = Render3dTextureAsArray(gridoffsetx[u], gridoffsety[v], gridoffsetz[w]);
-				//gridTextureArray[z] = gridFrustrum[key[z]]; //array with all the texture pointers
-
 				gridTextureArray[z] = Render3dTextureAsArray(gridoffsetx[u], gridoffsety[v], gridoffsetz[w]);
 				gridFrustrum[key[z]] = gridTextureArray[z];
 
 				usedTexturesVector[gridTextureArray[z]] = true;
-
-				//if (DENOISE == 1) {
-				//	mainQuadNorm[z].set_texture(gridFrustrum[key[z]]);
-				//}
 
 				z++;
 			}
@@ -1328,29 +1236,8 @@ void initGridFrustrum()
 	if (DENOISE == 1) {
 		mainQuadNorm[0].set_texture(finaltexture);
 	}
-
-	//array to use them as parametes in parallel tasks
-	for (int i = 0; i < ((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1); i++)
-	{
-		TaskArgs * _taskArgs = new TaskArgs();
-
-		_alltasks[i] = _taskArgs;
-	}
-
-	//array to use them as parametes in parallel tasks
-	for (int i = 0; i < ((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1); i++)
-	{
-		CopyArgs * _copyArgs = new CopyArgs();
-
-		_copytasks[i] = _copyArgs;
-	}
 }
 
-//void refreshGridFrustrum()
-//{
-//	CopyTexture(bunn, gridTextureArray[3]);
-//	mainQuad04.set_texture(gridTextureArray[3]);
-//}
 
 void initBigTexture()
 {
@@ -1362,23 +1249,15 @@ void initBigTexture()
 		{
 			for (int u = 0; u < ((GRIDEXTENSION * 2) + 1); u++)
 			{
-				//key[z] = std::make_tuple();
+				callOpenGLSubImage(GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w], 0, 0);
 
-				//put empty texture on every quad
-				//prevent flickering on textures
-				//mainQuad[z].set_texture(emptyTexture);
-
-				//if (DENOISE == 1)
-				//{
-				//	mainQuadNorm[z].set_texture(emptyTexture);
+				//if (DENOISE == 1) {
+				//	callOpenGLSubImage(GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w], 0, 1);
 				//}
 
-				callOpenGLSubImage(GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w], 0);
 			}
 		}
 	}
-
-	//callOpenGLSubImage(GRID_x + gridoffsetx[1], GRID_y + gridoffsety[0], GRID_z + gridoffsetz[0], 0);
 }
 
 
@@ -1418,22 +1297,18 @@ void refreshGridFrustrum()
 				{
 					gridFrustrum[key[z]] = cache[key[z]];
 					usedTexturesVector[cache[key[z]]] = true;
-					callOpenGLSubImage(GRID_x + gridoffsety[v], GRID_y + gridoffsetx[u], GRID_z + gridoffsetz[w], 0);
+					callOpenGLSubImage(GRID_x + gridoffsety[v], GRID_y + gridoffsetx[u], GRID_z + gridoffsetz[w], 0, 0);
+
+					//if (DENOISE == 1)
+					//{
+					//	callOpenGLSubImage(GRID_x + gridoffsety[v], GRID_y + gridoffsetx[u], GRID_z + gridoffsetz[w], 0, 1);
+					//}
 	
 				}
 				else
 				{
 					refresharray.push_back(std::make_tuple(GRID_x + gridoffsety[v], GRID_y + gridoffsetx[u], GRID_z + gridoffsetz[w]));
 				}
-
-				//put empty texture on every quad
-				//prevent flickering on textures
-				/*mainQuad[z].set_texture(emptyTexture);
-
-				if (DENOISE == 1)
-				{
-					mainQuadNorm[z].set_texture(emptyTexture);
-				}*/
 
 				z++;
 			}
@@ -1489,51 +1364,18 @@ void refreshGridFrustrum()
 				usedTexturesVector[it->first] = true;
 
 				refreshQueue.push(keydata);
-				callOpenGLSubImage(std::get<0>(keydata), std::get<1>(keydata), std::get<2>(keydata), 1); //refresh texture with empty
+				callOpenGLSubImage(std::get<0>(keydata), std::get<1>(keydata), std::get<2>(keydata), 1, 0); //refresh texture with empty
+
+				//if (DENOISE == 1)
+				//{
+				//	callOpenGLSubImage(std::get<0>(keydata), std::get<1>(keydata), std::get<2>(keydata), 1, 1); //refresh texture with empty
+				//}
+
 				break;
 			}
 		}
 	}
 
-}
-
-void CopyTexture(PT(Texture) origin, PT(Texture) destination)
-{
-	int textsize = TEXTURESIZE * TEXTURESIZE * TEXTURESIZE * 4;
-
-	PTA_uchar image = destination->modify_ram_image();
-	//CPTA_uchar imageorg = origin->get_ram_image();
-	PTA_uchar imageorg = origin->modify_ram_image();
-
-	memcpy(image.p(), imageorg.p(), textsize);
-
-	//int z = 0;
-	//int y = 127;
-	//int x = 0;
-
-	//for (int i = 0; i < textsize; i += 4)
-	//{
-	//	image[i] = imageorg[i];  // BLUE COLOR
-	//	image[i + 1] = imageorg[i + 1]; // GREEN COLOR
-	//	image[i + 2] = imageorg[i + 2]; // RED COLOR
-	//	image[i + 3] = imageorg[i + 3]; // ALPHA
-
-	//	x++;
-
-	//	if (x == TEXTURESIZE)
-	//	{
-	//		x = 0;
-	//		y--;
-
-	//		if (y == -1)
-	//		{
-	//			y = 127;
-	//			z++;
-	//		}
-	//	}
-	//}
-
-	destination->reload();
 }
 
 void CleanTexture(PT(Texture) origin)
@@ -2129,16 +1971,6 @@ void GenerateTextureBuffer(int width, int height, WindowFramework * window, Node
 		GenerateBillboard(width, height, window, 0, true, myscenenorm, -width / 2, height / 2, 1);
 	}
 
-	//use many billboards to split the 3d texture --- SLOW as HELL
-	/*for (int z = 0; z < ((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1); z++)
-	{
-		GenerateBillboard(width, height, window, z, true, myscene, -width / 2, height / 2, 0);
-
-		if (DENOISE == 1) {
-			GenerateBillboard(width, height, window, z, true, myscenenorm, -width / 2, height / 2, 1);
-		}
-	}*/
-
 	if (DENOISE == 1)
 	{
 		GeneratePrePassBillboard(width, height, window, mysceneaa, -width / 2, height / 2);
@@ -2296,7 +2128,12 @@ void MakeShadertoy(int argc, char *argv[])
 			KeyTriple args = renderQueue.front();
 			renderQueue.pop();
 
-			callOpenGLSubImage(std::get<0>(args), std::get<1>(args), std::get<2>(args), 0); //put last parameter in 0 to render correctly
+			callOpenGLSubImage(std::get<0>(args), std::get<1>(args), std::get<2>(args), 0, 0); //put last parameter in 0 to render correctly
+
+			//if (DENOISE == 1)
+			//{
+			//	callOpenGLSubImage(std::get<0>(args), std::get<1>(args), std::get<2>(args), 0, 1); //put last parameter in 0 to render correctly
+			//}
 		}
 
 	}
@@ -2306,11 +2143,21 @@ void MakeShadertoy(int argc, char *argv[])
 	delete grid;
 }
 
-void callOpenGLSubImage(int posx, int posy, int posz, int debug)
+void callOpenGLSubImage(int posx, int posy, int posz, int debug, int quad)
 {
 	//std::cout << "Texture gl function address: " << (int)glTextureSubImage3D << "\n";
 	PT(GraphicsStateGuardianBase) gsg = mainWindow->get_graphics_window()->get_gsg();
-	GLTextureContext *GLtex = DCAST(GLTextureContext, mainQuad[0].get_texture()->prepare_now(0, gsg->get_prepared_objects(), gsg));
+	//GLTextureContext *GLtex = DCAST(GLTextureContext, mainQuad[0].get_texture()->prepare_now(0, gsg->get_prepared_objects(), gsg));
+	GLTextureContext *GLtex;
+	
+	if (quad == 0) {
+		GLtex = DCAST(GLTextureContext, mainQuad[0].get_texture()->prepare_now(0, gsg->get_prepared_objects(), gsg));
+	}
+	else
+	{
+		GLtex = DCAST(GLTextureContext, mainQuadNorm[0].get_texture()->prepare_now(0, gsg->get_prepared_objects(), gsg));
+	}
+
 	GLuint texA = GLtex->_index;
 	GLuint internal_format = GLtex->_internal_format;
 	GLuint wi = GLtex->_width;
