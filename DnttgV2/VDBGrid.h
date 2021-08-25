@@ -1,5 +1,6 @@
 #pragma once
 #define NOMINMAX //to finally use movepoints -- conflict with MINMAX Macros
+#define BACKGROUNDVALUE 666.0
 #include <iostream>
 #define _USE_MATH_DEFINES // for C++
 #include <math.h>

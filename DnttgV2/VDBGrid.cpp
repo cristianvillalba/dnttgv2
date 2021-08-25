@@ -96,99 +96,11 @@ int VDBGrid::initGrid()
 	// From the example above, "LevelSetSphere" is known to be a FloatGrid,
 	// so cast the generic grid pointer to a FloatGrid pointer.
 	grid = openvdb::gridPtrCast<openvdb::FloatGrid>(baseGrid);
-
-	// Convert the level set sphere to a narrow-band fog volume, in which
-	// interior voxels have value 1, exterior voxels have value 0, and
-	// narrow-band voxels have values varying linearly from 0 to 1.
 	
-	//onst float outside = grid->background();
-	//const float width = 2.0 * outside;
-	
-	// Visit and update all of the grid's active values, which correspond to
-	// voxels on the narrow band.
-	//for (openvdb::FloatGrid::ValueOnIter iter = grid->beginValueOn(); iter; ++iter) {
-		//float dist = iter.getValue();
-		//iter.setValue((outside - dist) / width);
-	//}
-	// Visit all of the grid's inactive tile and voxel values and update the values
-	// that correspond to the interior region.
-	for (openvdb::FloatGrid::ValueOffIter iter = grid->beginValueOff(); iter; ++iter) {
-		if (iter.getValue() < 0.0) {
-			iter.setValue(1.0);
-			iter.setValueOff();
-		}
-	}
-	// Set exterior voxels to 0.
-	openvdb::tools::changeBackground(grid->tree(), 0.0);
-
-	//check values from grid in file
-	//for (openvdb::FloatGrid::ValueOnCIter iter = grid->cbeginValueOn(); iter; ++iter) {
-	//	std::cout << "Grid" << iter.getCoord() << " = " << *iter << " value = " << iter.getValue() << std::endl;
-	//}
-
-	/*
-	// Retrieve the number of leaf nodes in the grid.
-	openvdb::Index leafCount = grid->tree().leafCount();
-	// Use the topology to create a PointDataTree
-	openvdb::points::PointDataTree::Ptr pointTree(
-		new openvdb::points::PointDataTree(grid->tree(), 0, openvdb::TopologyCopy()));
-	// Ensure all tiles have been voxelized
-	pointTree->voxelizeActiveTiles();
-	// Define the position type and codec using fixed-point 16-bit compression.
-	using PositionAttribute = openvdb::points::TypedAttributeArray<openvdb::Vec3f,
-		openvdb::points::FixedPointCodec<false>>;
-	openvdb::NamePair positionType = PositionAttribute::attributeType();
-	// Create a new Attribute Descriptor with position only
-	openvdb::points::AttributeSet::Descriptor::Ptr descriptor(
-		openvdb::points::AttributeSet::Descriptor::create(positionType));
-	// Determine the number of points / voxel and points / leaf.
-	openvdb::Index pointsPerVoxel = 1;
-	openvdb::Index voxelsPerLeaf = openvdb::points::PointDataGrid::TreeType::LeafNodeType::SIZE;
-	openvdb::Index pointsPerLeaf = pointsPerVoxel * voxelsPerLeaf;
-	// Iterate over the leaf nodes in the point tree.
-	for (auto leafIter = pointTree->beginLeaf(); leafIter; ++leafIter) {
-		// Initialize the attributes using the descriptor and point count.
-		leafIter->initializeAttributes(descriptor, pointsPerLeaf);
-		// Initialize the voxel offsets
-		openvdb::Index offset(0);
-		for (openvdb::Index index = 0; index < voxelsPerLeaf; ++index) {
-			offset += pointsPerVoxel;
-			leafIter->setOffsetOn(index, offset);
-		}
-	}
-	// Create the points grid.
-	points =
-		openvdb::points::PointDataGrid::create(pointTree);
-	// Set the name of the grid.
-	points->setName("Points");
-	// Copy the transform from the sphere grid.
-	points->setTransform(grid->transform().copy());
-	// Randomize the point positions.
-	std::mt19937 generator(0);
-	std::uniform_real_distribution<> distribution(-0.5, 0.5);
-	// Iterate over the leaf nodes in the point tree.
-	for (auto leafIter = points->tree().beginLeaf(); leafIter; ++leafIter) {
-		// Create an AttributeWriteHandle for position.
-		// Note that the handle only requires the value type, not the codec.
-		openvdb::points::AttributeArray& array = leafIter->attributeArray("P");
-		openvdb::points::AttributeWriteHandle<openvdb::Vec3f> handle(array);
-		// Iterate over the point indices in the leaf.
-		for (auto indexIter = leafIter->beginIndexOn(); indexIter; ++indexIter) {
-			// Compute a new random position (in the range -0.5 => 0.5).
-			openvdb::Vec3f positionVoxelSpace(distribution(generator));
-			// Set the position of this point.
-			// As point positions are stored relative to the voxel center, it is
-			// not necessary to convert these voxel space values into
-			// world-space during this process.
-			handle.set(*indexIter, positionVoxelSpace);
-		}
-	}
-	// Verify the point count.
-	openvdb::Index count = openvdb::points::pointCount(points->tree());
-	std::cout << "LeafCount=" << leafCount << std::endl;
-	std::cout << "PointCount=" << count << std::endl;
-	*/
-
+	//Empty grid
+	//grid = openvdb::FloatGrid::create();
+	//grid->setGridClass(openvdb::GRID_LEVEL_SET);
+	openvdb::tools::changeBackground(grid->tree(), BACKGROUNDVALUE);
 
 	//for debug purposes
 	spawnSphere(LVector3f(0, 1000, 1000), 200.0); //axis are inverted  looks like 1000 is middle, 
@@ -256,7 +168,7 @@ void VDBGrid::spawnBox(LVector3f pos)
 
 	openvdb::tools::csgUnion(*grid, *boxGrid);
 
-	openvdb::tools::changeBackground(grid->tree(), 0.0);
+	//openvdb::tools::changeBackground(grid->tree(), 0.0);
 }
 
 //axis are inverted  looks like 1000 is middle, 
@@ -265,12 +177,28 @@ void VDBGrid::spawnBox(LVector3f pos)
 void VDBGrid::spawnSphere(LVector3f pos, float radius) //Axis are inverted!
 {
 	//axis are inverted  looks like 1000 is middle
-	openvdb::tools::changeBackground(grid->tree(), 1.5);
 
 	// Generate a level set grid.
 	openvdb::FloatGrid::Ptr sphereGrid =
 		openvdb::tools::createLevelSetSphere<openvdb::FloatGrid>(/*radius=*/radius,
-			/*center=*/openvdb::Vec3f(pos.get_x(), pos.get_y(), pos.get_z()), /*voxel size=*/1.0);
+			/*center=*/openvdb::Vec3f(pos.get_x(), pos.get_y(), pos.get_z()), /*voxel size=*/1.0, 3.0, true);
+
+
+
+	sphereGrid->setGridClass(openvdb::GRID_LEVEL_SET);
+
+	// Convert the level set sphere to a narrow-band fog volume, in which
+	// interior voxels have value 1, exterior voxels have value 0, and
+	// narrow-band voxels have values varying linearly from 0 to 1.
+	const float outside = sphereGrid->background();
+	const float width = 2.0 * outside;
+	// Visit and update all of the grid's active values, which correspond to
+	// voxels on the narrow band.
+	for (openvdb::FloatGrid::ValueOnIter iter = sphereGrid->beginValueOn(); iter; ++iter) {
+		float dist = iter.getValue();
+		iter.setValue((outside - dist) / width);
+	}
+
 
 	for (openvdb::FloatGrid::ValueOffIter iter = sphereGrid->beginValueOff(); iter; ++iter) {
 		if (iter.getValue() < 0.0) {
@@ -279,11 +207,9 @@ void VDBGrid::spawnSphere(LVector3f pos, float radius) //Axis are inverted!
 		}
 	}
 
+	openvdb::tools::changeBackground(sphereGrid->tree(), BACKGROUNDVALUE);
 
 	openvdb::tools::csgUnion(*grid, *sphereGrid);
-
-	openvdb::tools::changeBackground(grid->tree(), 0.0);
-
 }
 
 template<class GridType>

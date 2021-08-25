@@ -45,7 +45,7 @@
 #define BOUNDINGBOX 1 //bounding box of 3d texture
 #define TEXTURESIZE 32 //3d texture resolution
 #define GRIDEXTENSION 1 //how many side voxels this will render
-#define DENOISE 1 //denoising shader as an image post processing
+#define DENOISE 0 //denoising shader as an image post processing
 
 using std::chrono::duration;
 using std::chrono::duration_cast;
@@ -365,8 +365,8 @@ AsyncTask::DoneStatus modifyGrid(GenericAsyncTask *task, void *data)
 {
 	if (SPAWN)
 	{
-		//LVector3f fw = mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, -0.10));
-		LVector3f fw = mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, 0));
+		LVector3f fw = mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, 5.0));
+		//LVector3f fw = mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, 0));
 		fw /= GRID_SCALE;
 		fw *= -1000;
 		fw.add_x(GRID_x * 1000);
@@ -378,15 +378,10 @@ AsyncTask::DoneStatus modifyGrid(GenericAsyncTask *task, void *data)
 		fw *= -1; //invert coordinates to spawn
 		grid->spawnSphere(fw, 200.0f);
 
-		//refresh3dTexture();
-
-		refresh3dTexture(gridTextureArray[13], GRID_x, GRID_y, GRID_z);//only refresh center
-		//gridTextureArray[13] = Render3dTexture(GRID_x, GRID_y, GRID_z);
-
-		//KeyTriple key = std::make_tuple(GRID_x, GRID_y, GRID_z);
-		//gridFrustrum[key] = gridTextureArray[13];
-
-		//refreshGridFrustrum();
+		//only refresh center
+		KeyTriple params = std::make_tuple(GRID_x, GRID_y, GRID_z);
+		refresh3dTextureAsArray(gridFrustrum[params], GRID_x, GRID_y, GRID_z);
+		refreshQueue.push(params);
 
 		SPAWN = false;
 	}
@@ -514,10 +509,11 @@ unsigned char * Render3dTextureAsArray(int gridx, int gridy, int gridz)
 				int g = 0;
 				int b = 0;
 
-				//float data = grid->getValue(x - gridx * 1000, y - gridy * 1000, z - gridz * 1000);
 				float data = grid->getValue(y - gridy * 1000, x - gridx * 1000, z - gridz * 1000);
 
-				if (data > 0)
+				//if (data > 0)
+				//std::cout << "value: " << data << "\n";
+				if (data != 1.5) //why 1.5?
 				{
 					r = 255;
 					g = 255;
@@ -558,6 +554,7 @@ void refresh3dTextureAsArray(unsigned char * texture, int gridx, int gridy, int 
 	//std::cout << " grid x: " << gridx << " y: " << gridy << " z: " << gridz << "  \n";
 	int n = 0;
 
+
 	for (int k = 0; k < texsize; k++) {
 
 		for (int i = 0; i < texsize; i++)
@@ -581,7 +578,9 @@ void refresh3dTextureAsArray(unsigned char * texture, int gridx, int gridy, int 
 				//float data = grid->getValue(x - gridx * 1000, y - gridy * 1000, z - gridz * 1000);
 				float data = grid->getValue(y - gridy * 1000, x - gridx * 1000, z - gridz * 1000);
 
-				if (data > 0)
+				//if (data > 0)
+				//if (data != BACKGROUNDVALUE)
+				if (data != 1.5)
 				{
 					r = 255;
 					g = 255;
