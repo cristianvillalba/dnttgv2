@@ -45,7 +45,7 @@
 #define BOUNDINGBOX 1 //bounding box of 3d texture
 #define TEXTURESIZE 32 //3d texture resolution
 #define GRIDEXTENSION 1 //how many side voxels this will render
-#define DENOISE 0 //denoising shader as an image post processing
+#define DENOISE 1 //denoising shader as an image post processing
 
 using std::chrono::duration;
 using std::chrono::duration_cast;
@@ -660,7 +660,7 @@ void refresh3dTextureAsArray(unsigned char * texture, int gridx, int gridy, int 
 
 	int n = 0;
 	
-	#pragma omp for
+	#pragma omp parallel for shared(tex, grid)
 	for (int n = 0; n < texsize * texsize * texsize * 4; n+=4) {
 
 				
@@ -705,7 +705,7 @@ void refresh3dTextureAsArray(unsigned char * texture, int gridx, int gridy, int 
 						g = 255;
 					}
 				}
-
+				#pragma omp critical
 				tex[n] = r;
 				tex[n + 1] = g;
 				tex[n + 2] = b;
@@ -1096,23 +1096,45 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 
 	if (DENOISE == 1)
 	{
-		/*
-		//Debug only - noise in texture
+		//
+		////Debug only - noise in texture
+		//PTA_uchar image = prevframe_texture->modify_ram_image();
+
+		//for (int yi = 0; yi < INTERNALRES; ++yi) {
+		//	for (int xi = 0; xi < INTERNALRES; ++xi) {
+		//		int i = (yi * INTERNALRES + xi) * 4;
+		//		image[i] = rand() % 256;
+		//		image[i + 1] = rand() % 256;
+		//		image[i + 2] = rand() % 256;
+		//	}
+		//}
+		////Debug only - noise in texture
+		//
+
+		PT(DisplayRegion) displayRegion = mainWindow->get_display_region_3d();
+
+		PT(Texture) tex = displayRegion->get_screenshot();
+		CPTA_uchar img = tex->get_ram_image();
+
 		PTA_uchar image = prevframe_texture->modify_ram_image();
-		for (int yi = 0; yi < INTERNALRES; ++yi) {
+		for (int i = 0; i < INTERNALRES * INTERNALRES * 4; i++)
+		{
+			image[i] = img[i];
+		}
+		/*for (int yi = 0; yi < INTERNALRES; ++yi) {
 			for (int xi = 0; xi < INTERNALRES; ++xi) {
 				int i = (yi * INTERNALRES + xi) * 4;
-				image[i] = rand() % 256;
-				image[i + 1] = rand() % 256;
-				image[i + 2] = rand() % 256;
+				image[i] = img[i];
+				image[i + 1] = img[i + 1];
+				image[i + 2] = img[i + 2];
 			}
-		}
-		//Debug only - noise in texture
-		*/
+		}*/
 
-		if (mainWindow->get_graphics_output()) {
-			mainFramework->get_graphics_engine()->extract_texture_data(prevframe_texture, mainWindow->get_graphics_output()->get_gsg());
-		}
+		//if (mainWindow->get_graphics_output()) {
+		//	mainFramework->get_graphics_engine()->extract_texture_data(prevframe_texture, mainWindow->get_graphics_output()->get_gsg());
+			//tempAAbillboard.set_shader_input("data_store", prevframe_texture);
+			//tempAAbillboard.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
+		//}
 	}
 
 	return AsyncTask::DS_cont;
@@ -1952,7 +1974,7 @@ void GeneratePrePassBillboard(int width, int height, WindowFramework * window, N
 
 	NodePath nodePath = parentNode.attach_new_node(node);
 
-	nodePath.set_texture(rendertexture01);
+	nodePath.set_texture(rendertexture01);//diffuse
 
 	PT(Shader) denoise = Shader::load(Shader::ShaderLanguage::SL_GLSL, "shaders/denoise.vert", "shaders/denoise.frag");
 	nodePath.set_shader(denoise);
@@ -1962,7 +1984,7 @@ void GeneratePrePassBillboard(int width, int height, WindowFramework * window, N
 	PT(TextureStage) ts = new TextureStage("ts");
 	ts->set_mode(TextureStage::M_modulate);
 
-	nodePath.set_texture(ts, rendertexture02);
+	nodePath.set_texture(ts, rendertexture02);//normal
 
 	nodePath.set_bin("fixed", 1500); //I put 150 in the center quad WARN, this is render order
 

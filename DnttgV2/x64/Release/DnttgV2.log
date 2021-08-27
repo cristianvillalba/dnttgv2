@@ -1,1 +1,18 @@
-﻿
+﻿  DnttgV2.cpp
+c1xx : warning C4199: two-phase name lookup is not supported for C++/CLI, C++/CX, or OpenMP; use /Zc:twoPhase-
+c:\users\cristian.villalba\source\repos\dnttgv2\vcpkg\installed\x64-windows\include\openvdb\exceptions.h(18): warning C4275: non dll-interface class 'std::exception' used as base for dll-interface class 'openvdb::v7_1::Exception'
+  c:\program files (x86)\microsoft visual studio\2017\professional\vc\tools\msvc\14.16.27023\include\vcruntime_exception.h(44): note: see declaration of 'std::exception'
+  c:\users\cristian.villalba\source\repos\dnttgv2\vcpkg\installed\x64-windows\include\openvdb\exceptions.h(17): note: see declaration of 'openvdb::v7_1::Exception'
+CL : TBB warning : tbb/atomic.h is deprecated. For details, please see Deprecated Features appendix in the TBB reference manual.
+CL : TBB warning : tbb/task_scheduler_init.h is deprecated. For details, please see Deprecated Features appendix in the TBB reference manual.
+c:\panda3d-1.10.7-x64\include\pstatgputimer.h(36): warning C4275: non dll-interface class 'PStatTimer' used as base for dll-interface class 'PStatGPUTimer'
+  c:\panda3d-1.10.7-x64\include\pstattimer.h(30): note: see declaration of 'PStatTimer'
+  c:\panda3d-1.10.7-x64\include\pstatgputimer.h(36): note: see declaration of 'PStatGPUTimer'
+c:\users\cristian.villalba\source\repos\dnttgv2\dnttgv2\gl\glext.h(35): warning C4005: 'GL_GLEXT_VERSION': macro redefinition
+  c:\panda3d-1.10.7-x64\include\panda_glext.h(54): note: see previous definition of 'GL_GLEXT_VERSION'
+  Generating code
+  2 of 5255 functions (<0.1%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    1 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  DnttgV2.vcxproj -> C:\Users\cristian.villalba\source\repos\DnttgV2\x64\Release\DnttgV2.exe
