@@ -11,8 +11,8 @@ c:\panda3d-1.10.7-x64\include\pstatgputimer.h(36): warning C4275: non dll-interf
 c:\users\cristian.villalba\source\repos\dnttgv2\dnttgv2\gl\glext.h(35): warning C4005: 'GL_GLEXT_VERSION': macro redefinition
   c:\panda3d-1.10.7-x64\include\panda_glext.h(54): note: see previous definition of 'GL_GLEXT_VERSION'
   Generating code
-  2 of 5255 functions (<0.1%) were compiled, the rest were copied from previous compilation.
+  1 of 5246 functions (<0.1%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
-    1 functions had inline decision re-evaluated but remain unchanged
+    3 functions had inline decision re-evaluated but remain unchanged
   Finished generating code
   DnttgV2.vcxproj -> C:\Users\cristian.villalba\source\repos\DnttgV2\x64\Release\DnttgV2.exe

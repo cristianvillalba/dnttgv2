@@ -45,7 +45,7 @@
 #define BOUNDINGBOX 1 //bounding box of 3d texture
 #define TEXTURESIZE 32 //3d texture resolution
 #define GRIDEXTENSION 1 //how many side voxels this will render
-#define DENOISE 1 //denoising shader as an image post processing
+#define DENOISE 0 //denoising shader as an image post processing
 
 using std::chrono::duration;
 using std::chrono::duration_cast;
@@ -170,6 +170,7 @@ void *GetAnyGLFuncAddress(const char *name)
 }
 
 PFNGLTEXTURESUBIMAGE3DPROC glTextureSubImage3D;
+PFNGLGENERATETEXTUREMIPMAPPROC glGenerateTextureMipmap;
 //PFNGLTEXTURESUBIMAGE3DPROC glTextureSubImage3D = (PFNGLTEXTURESUBIMAGE3DPROC)GetAnyGLFuncAddress("glTextureSubImage3D");
 
 
@@ -360,6 +361,14 @@ void spawnSphere(const Event* eventPtr, void* dataPtr)
 	}
 }
 
+void spawnSphereUp(const Event* eventPtr, void* dataPtr)
+{
+	if (SPAWN)
+	{
+		SPAWN = false;
+	}
+}
+
 
 AsyncTask::DoneStatus modifyGrid(GenericAsyncTask *task, void *data)
 {
@@ -373,17 +382,17 @@ AsyncTask::DoneStatus modifyGrid(GenericAsyncTask *task, void *data)
 		fw.add_y(GRID_y * 1000);
 		fw.add_z(GRID_z * 1000);
 
-		std::cout << "spawn at x: " << fw.get_x() << "spawn at y: " << fw.get_y() << "spawn at z: " << fw.get_z() << "\n";
+		//std::cout << "spawn at x: " << fw.get_x() << "spawn at y: " << fw.get_y() << "spawn at z: " << fw.get_z() << "\n";
 
 		fw *= -1; //invert coordinates to spawn
-		grid->spawnSphere(fw, 200.0f);
+		grid->spawnSphere(fw, 200.0f, 4.0);
 
 		//only refresh center
 		KeyTriple params = std::make_tuple(GRID_x, GRID_y, GRID_z);
 		refresh3dTextureAsArray(gridFrustrum[params], GRID_x, GRID_y, GRID_z);
 		refreshQueue.push(params);
 
-		SPAWN = false;
+		//SPAWN = false;
 	}
 
 	return AsyncTask::DS_cont;
@@ -396,6 +405,8 @@ AsyncTask::DoneStatus refreshGrid(GenericAsyncTask *task, void *data)
 		refreshQueue.pop();
 
 		RefreshTexture(refresh);
+
+		//Thread::get_current_thread()->sleep(0.1);
 	}
 
 	return AsyncTask::DS_cont;
@@ -764,10 +775,13 @@ PT(Texture) Render3dBigTexture()
 
 	//bunn->write(Filename("woodgrain-#.png"), 0, 0, true, false);
 
+	bunn->set_magfilter(SamplerState::FT_linear);
+	bunn->set_minfilter(SamplerState::FT_linear_mipmap_linear);
 	bunn->set_wrap_u(SamplerState::WrapMode::WM_border_color);
 	bunn->set_wrap_v(SamplerState::WrapMode::WM_border_color);
 	bunn->set_wrap_w(SamplerState::WrapMode::WM_border_color);
 	bunn->set_border_color(LColor(0.0, 0.0, 0.0, 0.0));
+	//bunn->generate_ram_mipmap_images();
 	bunn->set_keep_ram_image(true);
 	return bunn;
 }
@@ -1096,7 +1110,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 
 	if (DENOISE == 1)
 	{
-		//
+		
 		////Debug only - noise in texture
 		//PTA_uchar image = prevframe_texture->modify_ram_image();
 
@@ -1109,9 +1123,9 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 		//	}
 		//}
 		////Debug only - noise in texture
-		//
+		
 
-		PT(DisplayRegion) displayRegion = mainWindow->get_display_region_3d();
+		/*PT(DisplayRegion) displayRegion = mainWindow->get_display_region_3d();
 
 		PT(Texture) tex = displayRegion->get_screenshot();
 		CPTA_uchar img = tex->get_ram_image();
@@ -1120,21 +1134,14 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 		for (int i = 0; i < INTERNALRES * INTERNALRES * 4; i++)
 		{
 			image[i] = img[i];
-		}
-		/*for (int yi = 0; yi < INTERNALRES; ++yi) {
-			for (int xi = 0; xi < INTERNALRES; ++xi) {
-				int i = (yi * INTERNALRES + xi) * 4;
-				image[i] = img[i];
-				image[i + 1] = img[i + 1];
-				image[i + 2] = img[i + 2];
-			}
 		}*/
+		
 
-		//if (mainWindow->get_graphics_output()) {
-		//	mainFramework->get_graphics_engine()->extract_texture_data(prevframe_texture, mainWindow->get_graphics_output()->get_gsg());
+		if (mainWindow->get_graphics_output()) {
+			mainFramework->get_graphics_engine()->extract_texture_data(prevframe_texture, mainWindow->get_graphics_output()->get_gsg());
 			//tempAAbillboard.set_shader_input("data_store", prevframe_texture);
 			//tempAAbillboard.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
-		//}
+		}
 	}
 
 	return AsyncTask::DS_cont;
@@ -1154,7 +1161,7 @@ AsyncTask::DoneStatus cameraTask(GenericAsyncTask *task, void *data) {
 }
 
 
-void RefreshTexture(KeyTriple params)
+int RefreshTexture(KeyTriple params)
 {
 	
 	int gridx = std::get<0>(params);
@@ -1162,9 +1169,18 @@ void RefreshTexture(KeyTriple params)
 	int gridz = std::get<2>(params);
 
 	//Need to invert x and y axis
-	refresh3dTextureAsArray(gridFrustrum[params], gridy, gridx, gridz);
+	if (gridFrustrum[params] != nullptr)
+	{
+		refresh3dTextureAsArray(gridFrustrum[params], gridy, gridx, gridz);
 
-	renderQueue.push(params);
+		renderQueue.push(params);
+		return 0;
+	}
+	else
+	{
+		return 1;
+	}
+	
 }
 
 
@@ -2150,7 +2166,9 @@ void MakeShadertoy(int argc, char *argv[])
 	framework.define_key("e", "down cam", downCamera, nullptr);
 	framework.define_key("e-up", "down cam", downCameraUp, nullptr);
 
+	//framework.define_key("space", "modify grid", spawnSphere, nullptr);
 	framework.define_key("space", "modify grid", spawnSphere, nullptr);
+	framework.define_key("space-up", "modify grid", spawnSphereUp, nullptr);
 
 	if (DENOISE == 1) {
 		prevframe_texture = new Texture();
@@ -2196,7 +2214,7 @@ void MakeShadertoy(int argc, char *argv[])
 	// to the task function.
 	AsyncTaskChain *chain = taskMgr->make_task_chain("changevdbgrid");
 	chain->set_num_threads(1);
-	chain->set_thread_priority(ThreadPriority::TP_urgent);
+	chain->set_thread_priority(ThreadPriority::TP_high);
 
 	//renderChain = taskMgr->make_task_chain("renderchain");
 	//renderChain->set_num_threads(2);
@@ -2228,6 +2246,7 @@ void MakeShadertoy(int argc, char *argv[])
 		{
 			if (glTextureSubImage3D == 0) {
 				glTextureSubImage3D = (PFNGLTEXTURESUBIMAGE3DPROC)GetAnyGLFuncAddress("glTextureSubImage3D");
+				glGenerateTextureMipmap = (PFNGLGENERATETEXTUREMIPMAPPROC)GetAnyGLFuncAddress("glGenerateTextureMipmap");
 			}
 			else {
 				state = 1;
@@ -2252,13 +2271,9 @@ void MakeShadertoy(int argc, char *argv[])
 			//std::cout << "Queue size: " << renderQueue.size() << "\n";
 			KeyTriple args = renderQueue.front();
 			renderQueue.pop();
-
-			callOpenGLSubImage(std::get<0>(args), std::get<1>(args), std::get<2>(args), 0, 0); //put last parameter in 0 to render correctly
-
-			//if (DENOISE == 1)
-			//{
-			//	callOpenGLSubImage(std::get<0>(args), std::get<1>(args), std::get<2>(args), 0, 1); //put last parameter in 0 to render correctly
-			//}
+			
+			callOpenGLSubImage(std::get<0>(args), std::get<1>(args), std::get<2>(args), 0, 0);//put last parameter in 0 to render correctly
+			
 		}
 
 	}
@@ -2268,7 +2283,7 @@ void MakeShadertoy(int argc, char *argv[])
 	delete grid;
 }
 
-void callOpenGLSubImage(int posx, int posy, int posz, int debug, int quad)
+int callOpenGLSubImage(int posx, int posy, int posz, int debug, int quad)
 {
 	//std::cout << "Texture gl function address: " << (int)glTextureSubImage3D << "\n";
 	PT(GraphicsStateGuardianBase) gsg = mainWindow->get_graphics_window()->get_gsg();
@@ -2319,6 +2334,11 @@ void callOpenGLSubImage(int posx, int posy, int posz, int debug, int quad)
 		tex = emptyTextureArray;
 	}
 
+	if (tex == nullptr)
+	{
+		return 1;
+	}
+
 	//std::cout << "memory to access: " << (int)tex << "\n";
 	//std::cout << " - " << centerx << " " << centery << " " <<  centerz << " " <<  GRID_x << " " <<  GRID_y << " " <<  GRID_z << "\n";
 	//std::cout << " x y z " << posx << " " << posy << " " << posz << " " << finalposx << " " << finalposy << " " << finalposz << " " << bigsize << "\n";
@@ -2326,7 +2346,11 @@ void callOpenGLSubImage(int posx, int posy, int posz, int debug, int quad)
 
 	glBindTexture(GL_TEXTURE_3D, texA);
 	glTextureSubImage3D(texA, 0, finalposx, finalposy, finalposz, TEXTURESIZE, TEXTURESIZE, TEXTURESIZE, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)tex);
-
+	
+	glGenerateTextureMipmap(texA);
+	//mainQuad[0].get_texture()->generate_ram_mipmap_images();
+	
+	return 0;
 	//GLenum err;
 	//err = glGetError();
 

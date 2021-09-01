@@ -34,7 +34,7 @@ public:
 	float getValue(float x, float y, float z);
 	//void movePoints();
 
-	void spawnSphere(LVector3f pos, float radius);
+	void spawnSphere(LVector3f pos, float radius, float voxelsize);
 	void spawnBox(LVector3f pos);
 	
 	template<class GridType>

@@ -33,6 +33,7 @@ float sdBox( vec3 p, vec3 b )
   return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
 }
 
+int lodvalue = int(osg_FrameTime) % 5;
 
 float map( in vec3 p )
 {
@@ -46,7 +47,8 @@ float map( in vec3 p )
 	p.y = -p.y;
 	p /= (params.x*params.y);
 	
-	vec4 color = texture(p3d_Texture0, p);
+	//vec4 color = texture(p3d_Texture0, p);
+	vec4 color = textureLod(p3d_Texture0, p, lodvalue);
 
     return color.r;
 }

@@ -59,7 +59,7 @@ PT(Texture) Render3dBigTexture();
 void refresh3dTexture();
 void refresh3dTexture(unsigned char * texture, int gridx, int gridy, int gridz);
 void refresh3dTextureAsArray(unsigned char * texture, int gridx, int gridy, int gridz);
-void callOpenGLSubImage(int posx, int posy, int posz, int debug, int quad);
+int callOpenGLSubImage(int posx, int posy, int posz, int debug, int quad);
 
 
 //Headers
@@ -73,7 +73,7 @@ void GenerateBillboard(int w, int h, WindowFramework * window, int index, bool u
 void GenerateTextureBuffer(int w, int h, WindowFramework * window, NodePath s);
 void InitShader(int index, NodePath node, int type);
 //void RefreshTexture(RefreshTuple params);
-void RefreshTexture(KeyTriple params);
+int RefreshTexture(KeyTriple params);
 void CleanTexture(PT(Texture) origin);
 unsigned char * CleanTextureArray();
 

@@ -95,20 +95,20 @@ int VDBGrid::initGrid()
 	file.close();
 	// From the example above, "LevelSetSphere" is known to be a FloatGrid,
 	// so cast the generic grid pointer to a FloatGrid pointer.
-	grid = openvdb::gridPtrCast<openvdb::FloatGrid>(baseGrid);
+	//grid = openvdb::gridPtrCast<openvdb::FloatGrid>(baseGrid);
 	
 	//Empty grid
-	//grid = openvdb::FloatGrid::create();
-	//grid->setGridClass(openvdb::GRID_LEVEL_SET);
+	grid = openvdb::FloatGrid::create();
+	grid->setGridClass(openvdb::GRID_LEVEL_SET);
 	openvdb::tools::changeBackground(grid->tree(), BACKGROUNDVALUE);
 
 	//for debug purposes
-	spawnSphere(LVector3f(0, 1000, 1000), 200.0); //axis are inverted  looks like 1000 is middle, 
+	spawnSphere(LVector3f(0, 1000, 1000), 200.0, 1.0); //axis are inverted  looks like 1000 is middle, 
 										      //and extension of grid is 1000 units
 										      // also y axis is pointing negative on UP vector
 
-	spawnSphere(LVector3f( 1000, 1000, 1000), 100.0);
-	spawnSphere(LVector3f( 2000, 1000, 1000), 50.0);
+	spawnSphere(LVector3f( 1000, 1000, 1000), 100.0, 1.0);
+	spawnSphere(LVector3f( 2000, 1000, 1000), 50.0, 1.0);
 
 	spawnBox(LVector3f(0, -500, 0));
 
@@ -174,14 +174,14 @@ void VDBGrid::spawnBox(LVector3f pos)
 //axis are inverted  looks like 1000 is middle, 
 //and extension of grid is 1000 units
 // also y axis is pointing negative on UP vector
-void VDBGrid::spawnSphere(LVector3f pos, float radius) //Axis are inverted!
+void VDBGrid::spawnSphere(LVector3f pos, float radius, float voxelsize) //Axis are inverted!
 {
 	//axis are inverted  looks like 1000 is middle
 
 	// Generate a level set grid.
 	openvdb::FloatGrid::Ptr sphereGrid =
 		openvdb::tools::createLevelSetSphere<openvdb::FloatGrid>(/*radius=*/radius,
-			/*center=*/openvdb::Vec3f(pos.get_x(), pos.get_y(), pos.get_z()), /*voxel size=*/1.0, 3.0, true);
+			/*center=*/openvdb::Vec3f(pos.get_x()*voxelsize, pos.get_y()*voxelsize, pos.get_z()*voxelsize), /*voxel size=*/1.0 * voxelsize, 3.0, true);
 
 
 
