@@ -207,7 +207,7 @@ vec3 getRayMipmap(vec3 ro, vec3 rd)
 	
 	lodvalue = 3;
 	
-	for (int i = 3; i > 0; i--) {
+	for (int i = 3; i > 1; i--) {
 		bool hit;
 		
 		voxelSize = vec3(params.x/voxparams.x) * (lodvalue + 1.0);
@@ -300,7 +300,7 @@ void main() {
 	float alpha = 0.0;
 	vec3 col = vec3(0.0);
 	
-	//ro = getRayMipmap(ro, rd); //advance mipmap
+	ro = getRayMipmap(ro, rd); //advance mipmap
 	
 	lodvalue = 0;
 	voxelSize = vec3(params.x/voxparams.x);
