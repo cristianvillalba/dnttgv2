@@ -18,6 +18,8 @@ uniform vec3 voxparams; //custom params vector (voxelsize, voxelsize, voxelsize)
 //in vec2 texcoord;
 uniform float osg_FrameTime;
 
+int lodvalue = 3; //3 seems a good starting point
+
 float rand(vec2 co){
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
@@ -33,7 +35,7 @@ float sdBox( vec3 p, vec3 b )
   return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
 }
 
-int lodvalue = int(osg_FrameTime) % 5;
+//int lodvalue = int(osg_FrameTime) % 5;
 
 float map( in vec3 p )
 {
@@ -49,17 +51,20 @@ float map( in vec3 p )
 	
 	//vec4 color = texture(p3d_Texture0, p);
 	vec4 color = textureLod(p3d_Texture0, p, lodvalue);
+	//vec4 color = textureLod(p3d_Texture0, p, 0);
 
     return color.r;
 }
 
 // Amanatides & Woo style voxel traversal
 //vec3 voxelSize = vec3(0.05*params.x);//original value
-vec3 voxelSize = vec3(params.x/voxparams.x);//grid size divided by 10. In this case voxels of 1.0
+vec3 voxelSize = vec3(params.x/voxparams.x) * (lodvalue + 1.0);//grid size divided by 10. In this case voxels of 1.0
 
 vec2 seed;//seed for random
 
 float simpleseed; //simple seed
+
+
 
 
 vec3 worldToVoxel(vec3 i)
@@ -193,6 +198,31 @@ vec3 getConeSample(vec3 dir, float extent) {
 	return cos(r.x)*oneminus*o1+sin(r.x)*oneminus*o2+r.y*dir;
 }
 
+vec3 getRayMipmap(vec3 ro, vec3 rd)
+{
+	vec3 rayOrigin = ro;
+    vec3 rayDirection = rd;
+	vec3 pos;
+	vec3 n;
+	
+	lodvalue = 3;
+	
+	for (int i = 3; i > 0; i--) {
+		bool hit;
+		
+		voxelSize = vec3(params.x/voxparams.x) * (lodvalue + 1.0);
+		pos = voxelTrace(rayOrigin, rayDirection, hit, n);
+		
+		if (hit){
+			rayOrigin = pos + n *0.001* 4.0;
+		}
+		
+		lodvalue = lodvalue - 1;
+	}
+	
+	return (pos + n *0.001* 4.0);
+}
+
 vec3 getRayColor(vec3 ro, vec3 rd, out float alpha, float i)
 {
 	vec3 color = vec3(1.0, 1.0, 1.0);
@@ -269,6 +299,11 @@ void main() {
 	int RAYSAMPLES = 2;
 	float alpha = 0.0;
 	vec3 col = vec3(0.0);
+	
+	//ro = getRayMipmap(ro, rd); //advance mipmap
+	
+	lodvalue = 0;
+	voxelSize = vec3(params.x/voxparams.x);
 	
 	for (int i = 0; i < RAYSAMPLES; i++)
 	{	

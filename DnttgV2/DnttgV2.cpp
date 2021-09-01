@@ -34,6 +34,7 @@
 #include "gl/glext.h"
 
 
+#include "pstatClient.h"
 
 #include "Dnntgv2.h"
 
@@ -46,6 +47,7 @@
 #define TEXTURESIZE 32 //3d texture resolution
 #define GRIDEXTENSION 1 //how many side voxels this will render
 #define DENOISE 0 //denoising shader as an image post processing
+#define USEPSTAT 0 //using pstat
 
 using std::chrono::duration;
 using std::chrono::duration_cast;
@@ -385,7 +387,7 @@ AsyncTask::DoneStatus modifyGrid(GenericAsyncTask *task, void *data)
 		//std::cout << "spawn at x: " << fw.get_x() << "spawn at y: " << fw.get_y() << "spawn at z: " << fw.get_z() << "\n";
 
 		fw *= -1; //invert coordinates to spawn
-		grid->spawnSphere(fw, 200.0f, 4.0);
+		grid->spawnSphere(fw, 800.0f, 10.0);
 
 		//only refresh center
 		KeyTriple params = std::make_tuple(GRID_x, GRID_y, GRID_z);
@@ -945,7 +947,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 		VELZ = VELZ + ACCELERATION * globalClock->get_dt() * fw.get_y();
 
 	}
-
+	
 	if (LEFT)
 	{
 		LVector3f fw = mainWindow->get_render().get_relative_point(camera, LVector3f(-1.0, 0, 0.0));
@@ -955,7 +957,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 		VELY = VELY + ACCELERATION * globalClock->get_dt() * fw.get_z();
 		VELZ = VELZ + ACCELERATION * globalClock->get_dt() * fw.get_y();
 	}
-
+	
 	if (RIGHT)
 	{
 		LVector3f fw = mainWindow->get_render().get_relative_point(camera, LVector3f(1.0, 0, 0.0));
@@ -998,12 +1000,12 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 	{
 		SPINVEL = SPINVEL - ACCELERATION * globalClock->get_dt() * 50;
 	}
-
+	
 	VELX -= (VELX  * (1.0 - FRICTION)) * globalClock->get_dt() * 10.0;
 	VELY -= (VELY  * (1.0 - FRICTION)) * globalClock->get_dt() * 10.0;
 	VELZ -= (VELZ  * (1.0 - FRICTION)) * globalClock->get_dt() * 10.0;
 	SPINVEL -= (SPINVEL  * (1.0 - FRICTION)) * globalClock->get_dt() * 10.0;
-
+	
 
 	if (abs(VELX) < 0.0001)
 	{
@@ -1073,7 +1075,7 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 		//Copy/Refresh 3d sectors
 		refreshGridFrustrum();
 	}
-
+	
 	CAM_x = nCAM_x;
 	CAM_z = nCAM_z;
 	CAM_y = nCAM_y;
@@ -1106,7 +1108,6 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 	//std::cout << "GRID x: " << GRID_x << " y: " << GRID_y << " z: " << GRID_z << "\n";
 	//std::cout << "x: " << CAM_x << " y: " << CAM_y << " z: " << CAM_z << "\n";
 	// Tell the task manager to continue this task the next frame.
-
 
 	if (DENOISE == 1)
 	{
@@ -1419,6 +1420,7 @@ void refreshGridFrustrum()
 	//init used textures vector
 	UsedTextures::iterator it;
 
+
 	for (it = usedTexturesVector.begin(); it != usedTexturesVector.end(); it++)
 	{
 		usedTexturesVector[it->first] = false;
@@ -1439,12 +1441,6 @@ void refreshGridFrustrum()
 					gridFrustrum[key[z]] = cache[key[z]];
 					usedTexturesVector[cache[key[z]]] = true;
 					callOpenGLSubImage(GRID_x + gridoffsety[v], GRID_y + gridoffsetx[u], GRID_z + gridoffsetz[w], 0, 0);
-
-					//if (DENOISE == 1)
-					//{
-					//	callOpenGLSubImage(GRID_x + gridoffsety[v], GRID_y + gridoffsetx[u], GRID_z + gridoffsetz[w], 0, 1);
-					//}
-	
 				}
 				else
 				{
@@ -1455,7 +1451,6 @@ void refreshGridFrustrum()
 			}
 		}
 	}
-
 
 	////-----------debugging just refreshing everything----------------------
 	//refresharray.push_back(std::make_tuple(0, GRID_x - 1, GRID_y - 1, GRID_z - 1));
@@ -1506,17 +1501,10 @@ void refreshGridFrustrum()
 
 				refreshQueue.push(keydata);
 				callOpenGLSubImage(std::get<0>(keydata), std::get<1>(keydata), std::get<2>(keydata), 1, 0); //refresh texture with empty
-
-				//if (DENOISE == 1)
-				//{
-				//	callOpenGLSubImage(std::get<0>(keydata), std::get<1>(keydata), std::get<2>(keydata), 1, 1); //refresh texture with empty
-				//}
-
 				break;
 			}
 		}
 	}
-
 }
 
 void CleanTexture(PT(Texture) origin)
@@ -2126,6 +2114,11 @@ void MakeShadertoy(int argc, char *argv[])
 	framework.open_framework(argc, argv);
 
 	load_prc_file_data("", "show-frame-rate-meter 1");
+	
+	if (USEPSTAT){
+		load_prc_file_data("", "want-pstats 1");
+		PStatClient::connect();
+	}
 
 	// Set the window title and open the window
 	framework.set_window_title("Dnttg V2 - CEV");
@@ -2267,14 +2260,17 @@ void MakeShadertoy(int argc, char *argv[])
 
 		}
 
+		
 		while (renderQueue.size() > 0) {
 			//std::cout << "Queue size: " << renderQueue.size() << "\n";
 			KeyTriple args = renderQueue.front();
 			renderQueue.pop();
 			
-			callOpenGLSubImage(std::get<0>(args), std::get<1>(args), std::get<2>(args), 0, 0);//put last parameter in 0 to render correctly
+			callOpenGLSubImage(std::get<0>(args), std::get<1>(args), std::get<2>(args), 0, 0);//put antelast parameter in 0 to render correctly
 			
 		}
+
+		
 
 	}
 

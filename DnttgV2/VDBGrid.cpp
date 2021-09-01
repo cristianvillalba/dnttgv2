@@ -95,11 +95,12 @@ int VDBGrid::initGrid()
 	file.close();
 	// From the example above, "LevelSetSphere" is known to be a FloatGrid,
 	// so cast the generic grid pointer to a FloatGrid pointer.
-	//grid = openvdb::gridPtrCast<openvdb::FloatGrid>(baseGrid);
+	grid = openvdb::gridPtrCast<openvdb::FloatGrid>(baseGrid);
 	
 	//Empty grid
-	grid = openvdb::FloatGrid::create();
-	grid->setGridClass(openvdb::GRID_LEVEL_SET);
+	//grid = openvdb::FloatGrid::create();
+	//grid->setGridClass(openvdb::GRID_LEVEL_SET);
+	
 	openvdb::tools::changeBackground(grid->tree(), BACKGROUNDVALUE);
 
 	//for debug purposes
