@@ -44,8 +44,8 @@
 #define INTERNALRES 256 //internal texture resolution
 #define BUNNY 1 //old vs new raycaster
 #define BOUNDINGBOX 1 //bounding box of 3d texture
-#define TEXTURESIZE 32 //3d texture resolution
-#define GRIDEXTENSION 1 //how many side voxels this will render
+#define TEXTURESIZE 64 //3d texture resolution
+#define GRIDEXTENSION 1 //how many side voxels to render, increasing more than 1 gives performance issues, try to play with grid size instead
 #define DENOISE 0 //denoising shader as an image post processing
 #define USEPSTAT 0 //using pstat
 
@@ -115,9 +115,9 @@ int GRID_y = 0;
 int GRID_z = 0;
 
 //Grid parameters
-float GRID_SCALE = 10.0f;
+float GRID_SCALE = 10.0f; //this number is the grid extension, 10 means from -5.0 to 5.0 x y and z
 float TEXTURE_3D_EXTENSION = (GRIDEXTENSION * 2.0) + 1.0;
-float VOXEL_SIZE = 20.0f; //this number will divide the GRID_SCALE to get the actual voxel size
+float VOXEL_SIZE = 40.0f; //this number will divide the GRID_SCALE to get the actual voxel size
 
 //grid frustrum
 GridFrustrum gridFrustrum;
@@ -187,6 +187,7 @@ NodePath tempAAbillboard; //temporal AA shader billboard
 void print_results(const char *const tag,
 	high_resolution_clock::time_point startTime,
 	high_resolution_clock::time_point endTime) {
+
 	printf("%s: Time: %fms\n", tag, duration_cast<duration<double, milli>>(endTime - startTime).count());
 }
 
@@ -402,13 +403,13 @@ AsyncTask::DoneStatus modifyGrid(GenericAsyncTask *task, void *data)
 
 AsyncTask::DoneStatus refreshGrid(GenericAsyncTask *task, void *data)
 {
-	while (refreshQueue.size() > 0) {
+	//while (refreshQueue.size() > 0) { //while is killing the thread
+	if (refreshQueue.size() > 0){
 		KeyTriple refresh = refreshQueue.front();
 		refreshQueue.pop();
 
 		RefreshTexture(refresh);
 
-		//Thread::get_current_thread()->sleep(0.1);
 	}
 
 	return AsyncTask::DS_cont;
@@ -673,7 +674,9 @@ void refresh3dTextureAsArray(unsigned char * texture, int gridx, int gridy, int 
 
 	int n = 0;
 	
-	#pragma omp parallel for shared(tex, grid)
+	//omp_set_dynamic(0);     // Explicitly disable dynamic teams
+	//omp_set_num_threads(4); // Use 4 threads for all consecutive parallel regions
+	//#pragma omp parallel for shared(tex, grid)
 	for (int n = 0; n < texsize * texsize * texsize * 4; n+=4) {
 
 				
@@ -718,7 +721,8 @@ void refresh3dTextureAsArray(unsigned char * texture, int gridx, int gridy, int 
 						g = 255;
 					}
 				}
-				#pragma omp critical
+
+				//#pragma omp critical
 				tex[n] = r;
 				tex[n + 1] = g;
 				tex[n + 2] = b;
@@ -1169,11 +1173,13 @@ int RefreshTexture(KeyTriple params)
 	int gridy = std::get<1>(params);
 	int gridz = std::get<2>(params);
 
-	//Need to invert x and y axis
+	
 	if (gridFrustrum[params] != nullptr)
 	{
+		//Need to invert x and y axis
+		//std::cout << "data 1\n";
 		refresh3dTextureAsArray(gridFrustrum[params], gridy, gridx, gridz);
-
+		//std::cout << "data 2\n";
 		renderQueue.push(params);
 		return 0;
 	}
@@ -2261,7 +2267,8 @@ void MakeShadertoy(int argc, char *argv[])
 		}
 
 		
-		while (renderQueue.size() > 0) {
+		//while (renderQueue.size() > 0) { //while is killing the thread
+		if (renderQueue.size() > 0) {
 			//std::cout << "Queue size: " << renderQueue.size() << "\n";
 			KeyTriple args = renderQueue.front();
 			renderQueue.pop();
