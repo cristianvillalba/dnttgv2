@@ -117,7 +117,7 @@ int GRID_z = 0;
 //Grid parameters
 float GRID_SCALE = 10.0f; //this number is the grid extension, 10 means from -5.0 to 5.0 x y and z
 float TEXTURE_3D_EXTENSION = (GRIDEXTENSION * 2.0) + 1.0;
-float VOXEL_SIZE = 40.0f; //this number will divide the GRID_SCALE to get the actual voxel size
+float VOXEL_SIZE = 80.0f; //this number will divide the GRID_SCALE to get the actual voxel size
 
 //grid frustrum
 GridFrustrum gridFrustrum;
@@ -2350,8 +2350,7 @@ int callOpenGLSubImage(int posx, int posy, int posz, int debug, int quad)
 	glBindTexture(GL_TEXTURE_3D, texA);
 	glTextureSubImage3D(texA, 0, finalposx, finalposy, finalposz, TEXTURESIZE, TEXTURESIZE, TEXTURESIZE, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)tex);
 	
-	glGenerateTextureMipmap(texA);
-	//mainQuad[0].get_texture()->generate_ram_mipmap_images();
+	//glGenerateTextureMipmap(texA); //This will fail in GTX960
 	
 	return 0;
 	//GLenum err;
