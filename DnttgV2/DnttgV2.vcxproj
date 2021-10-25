@@ -158,14 +158,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="DnttgV2.cpp" />
-    <ClCompile Include="RefreshThread.cpp" />
     <ClCompile Include="VDBGrid.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Dnntgv2.h" />
     <ClInclude Include="gl\glext.h" />
     <ClInclude Include="KHR\khrplatform.h" />
-    <ClInclude Include="RefreshThread.h" />
     <ClInclude Include="VDBGrid.h" />
   </ItemGroup>
   <ItemGroup>

@@ -35,7 +35,6 @@
 
 #include "pstatClient.h"
 
-#include "RefreshThread.h"
 #include "Dnntgv2.h"
 
 
@@ -423,10 +422,6 @@ AsyncTask::DoneStatus refreshGrid(GenericAsyncTask *task, void *data)
 
 		RefreshTexture(refresh);
 		
-		//Try refreshing from another thread
-		//RefreshThread* rthread = new RefreshThread(refresh, gridFrustrum, &renderQueue, grid, TEXTURESIZE, BOUNDINGBOX);
-		//rthread->start(ThreadPriority::TP_low, false);
-
 	}
 
 	if (refreshQueuePBO.size() > 0) {
@@ -2508,11 +2503,6 @@ void MakeShadertoy(int argc, char *argv[])
 	taskMgr->add(modifytask);
 	taskMgr->add(refreshtask);
 	taskMgr->start_threads();
-
-	//RefreshThread* thread = new RefreshThread();//just checking if threading works
-	//thread->start(ThreadPriority::TP_low, false);//just checking if threading works
-	//RefreshThread* rthread = new RefreshThread(&refreshQueue, gridFrustrum, &renderQueue, grid, TEXTURESIZE, BOUNDINGBOX);
-	//rthread->start(ThreadPriority::TP_low, false);
 
 	int state = 0;
 	// This is a simpler way to do stuff every frame,
