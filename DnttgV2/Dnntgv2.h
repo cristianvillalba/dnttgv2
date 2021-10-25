@@ -12,11 +12,13 @@ using std::vector;
 
 typedef std::tuple<int, int, int> KeyTriple;
 typedef std::map<KeyTriple, unsigned char *> GridFrustrum;
+typedef std::map<KeyTriple, int> GridFrustrumPBO;
 
 typedef std::tuple<int, KeyTriple> CopyTuple;
 typedef std::tuple<int, int, int, int> RefreshTuple;
 
 typedef std::map<unsigned char *, bool> UsedTextures;
+typedef std::map<int, bool> UsedTexturesPBO;
 
 //structure to z depth ordering
 struct Zorder {
@@ -59,14 +61,19 @@ PT(Texture) Render3dBigTexture();
 void refresh3dTexture();
 void refresh3dTexture(unsigned char * texture, int gridx, int gridy, int gridz);
 void refresh3dTextureAsArray(unsigned char * texture, int gridx, int gridy, int gridz);
+void refresh3dTexturePBO(int gridx, int gridy, int gridz, int pboindex, int saveptr);
 int callOpenGLSubImage(int posx, int posy, int posz, int debug, int quad);
+int callOpenGLSubImagePBO(int posx, int posy, int posz, int pboindex, int quad);
+
 
 
 //Headers
 void initGridFrustrum();
 void initOffsetVectors();
 void initBigTexture();
+void initBigTexturePBO();
 void refreshGridFrustrum();
+void refreshGridFrustrumPBO();
 void GenerateMainBillboard(int w, int h, WindowFramework * window, PT(Texture) mtex);
 void GeneratePrePassBillboard(int w, int h, WindowFramework * window, NodePath parent, int centerx, int centery);
 void GenerateBillboard(int w, int h, WindowFramework * window, int index, bool useBuffer, NodePath parent, int centerx, int centery, int type);
@@ -76,6 +83,11 @@ void InitShader(int index, NodePath node, int type);
 int RefreshTexture(KeyTriple params);
 void CleanTexture(PT(Texture) origin);
 unsigned char * CleanTextureArray();
+void initCleanTexturePBO();
+void exitCB();
+int initPixelBufferObject();
+void clearSharedMem();
+
 
 
 

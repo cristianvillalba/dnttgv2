@@ -24,7 +24,6 @@
 #include <texturePool.h>
 
 #include "VDBGrid.h"
-#include "FilterManager.h"
 
 #include "antialiasAttrib.h"
 
@@ -36,6 +35,7 @@
 
 #include "pstatClient.h"
 
+#include "RefreshThread.h"
 #include "Dnntgv2.h"
 
 
@@ -44,7 +44,7 @@
 #define INTERNALRES 256 //internal texture resolution
 #define BUNNY 1 //old vs new raycaster
 #define BOUNDINGBOX 1 //bounding box of 3d texture
-#define TEXTURESIZE 64 //3d texture resolution
+#define TEXTURESIZE 128 //3d texture resolution
 #define GRIDEXTENSION 1 //how many side voxels to render, increasing more than 1 gives performance issues, try to play with grid size instead
 #define DENOISE 0 //denoising shader as an image post processing
 #define USEPSTAT 0 //using pstat
@@ -83,6 +83,7 @@ NodePath mainQuadNorm[1];
 unsigned char * gridTextureArray[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
 unsigned char * gridTextureArrayBuffer[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
 UsedTextures usedTexturesVector;
+UsedTexturesPBO usedTexturesVectorPBO;
 
 LVector3f gridCoordOffset[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
 
@@ -117,10 +118,11 @@ int GRID_z = 0;
 //Grid parameters
 float GRID_SCALE = 10.0f; //this number is the grid extension, 10 means from -5.0 to 5.0 x y and z
 float TEXTURE_3D_EXTENSION = (GRIDEXTENSION * 2.0) + 1.0;
-float VOXEL_SIZE = 80.0f; //this number will divide the GRID_SCALE to get the actual voxel size
+float VOXEL_SIZE = 20.0f; //this number will divide the GRID_SCALE to get the actual voxel size
 
 //grid frustrum
 GridFrustrum gridFrustrum;
+GridFrustrumPBO gridFrustrumPBO;
 
 //Velocity vector/Acceleration
 float VELX = 0.0;
@@ -154,7 +156,13 @@ AsyncTaskChain * renderChain;
 
 std::queue<KeyTriple> renderQueue;
 std::queue<KeyTriple> refreshQueue;
+std::queue<RefreshTuple> renderQueuePBO;
+std::queue<RefreshTuple> refreshQueuePBO;
 
+//Pixel buffer Object to fast transfer
+//GLuint pboIds[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
+GLuint pboIds[(((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)) + 1];// IDs of PBO, I add a last one to use it as an empty texture
+GLubyte* pboPointers[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
 
 //---OpenGLExtensions
 void *GetAnyGLFuncAddress(const char *name)
@@ -173,7 +181,12 @@ void *GetAnyGLFuncAddress(const char *name)
 
 PFNGLTEXTURESUBIMAGE3DPROC glTextureSubImage3D;
 PFNGLGENERATETEXTUREMIPMAPPROC glGenerateTextureMipmap;
-//PFNGLTEXTURESUBIMAGE3DPROC glTextureSubImage3D = (PFNGLTEXTURESUBIMAGE3DPROC)GetAnyGLFuncAddress("glTextureSubImage3D");
+PFNGLGENBUFFERSPROC glGenBuffers;
+PFNGLBINDBUFFERPROC glBindBuffer;
+PFNGLBUFFERDATAPROC glBufferData;
+PFNGLDELETEBUFFERSPROC glDeleteBuffers;
+PFNGLMAPBUFFERPROC glMapBuffer;
+PFNGLUNMAPBUFFERPROC glUnmapBuffer;
 
 
 PT(Texture) rendertexture01;
@@ -409,7 +422,19 @@ AsyncTask::DoneStatus refreshGrid(GenericAsyncTask *task, void *data)
 		refreshQueue.pop();
 
 		RefreshTexture(refresh);
+		
+		//Try refreshing from another thread
+		//RefreshThread* rthread = new RefreshThread(refresh, gridFrustrum, &renderQueue, grid, TEXTURESIZE, BOUNDINGBOX);
+		//rthread->start(ThreadPriority::TP_low, false);
 
+	}
+
+	if (refreshQueuePBO.size() > 0) {
+		RefreshTuple refresh = refreshQueuePBO.front();
+		refreshQueuePBO.pop();
+
+		refresh3dTexturePBO(std::get<1>(refresh), std::get<0>(refresh), std::get<2>(refresh), std::get<3>(refresh), 0);
+		renderQueuePBO.push(refresh);
 	}
 
 	return AsyncTask::DS_cont;
@@ -499,6 +524,8 @@ unsigned char * Render3dTextureAsArray(int gridx, int gridy, int gridz)
 
 	unsigned char * tex;
 	tex = (unsigned char *)malloc(texsize * texsize * texsize * 4 * (sizeof(char)));
+
+	//std::cout << "Texture piece in bytes: " << (texsize * texsize * texsize * 4 * (sizeof(char))) << "\n";
 
 	//std::cout << " grid x: " << gridx << " y: " << gridy << " z: " << gridz << "  \n";
 	int n = 0;
@@ -730,6 +757,107 @@ void refresh3dTextureAsArray(unsigned char * texture, int gridx, int gridy, int 
 	}
 }
 
+void refresh3dTexturePBO(int gridx, int gridy, int gridz, int pboindex, int saveptr)
+{
+	int texsize = TEXTURESIZE;
+	int DATA_SIZE = texsize * texsize * texsize * 4 * (sizeof(char));
+
+	// bind PBO to update pixel values
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[pboindex]);
+
+	// map the buffer object into client's memory
+	// Note that glMapBuffer() causes sync issue.
+	// If GPU is working with this buffer, glMapBuffer() will wait(stall)
+	// for GPU to finish its job. To avoid waiting (stall), you can call
+	// first glBufferData() with NULL pointer before glMapBuffer().
+	// If you do that, the previous data in PBO will be discarded and
+	// glMapBuffer() returns a new allocated pointer immediately
+	// even if GPU is still working with the previous data.
+	GLubyte * ptr;
+
+	if (saveptr == 1){
+		glBufferData(GL_PIXEL_UNPACK_BUFFER, DATA_SIZE, 0, GL_STREAM_DRAW);
+		ptr = (GLubyte*)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+	}
+	else
+	{
+		glBufferData(GL_PIXEL_UNPACK_BUFFER, DATA_SIZE, pboPointers[pboindex], GL_STREAM_DRAW);
+		ptr = pboPointers[pboindex];
+	}
+
+	if (ptr)
+	{
+
+		if (saveptr == 1)
+		{
+			pboPointers[pboindex] = ptr;
+		}
+		
+		unsigned char * tex = (unsigned char *) ptr;
+		// update data directly on the mapped buffer
+
+		//#pragma omp parallel for shared(tex, grid) //useless here
+		for (int n = 0; n < texsize * texsize * texsize * 4; n += 4) {
+
+
+			int j = (n / 4) % texsize;
+			int i = floor(((n / 4) % (texsize * texsize)) / texsize);
+			int k = floor((n / 4) / (texsize * texsize));
+
+			//This is good for index sample
+			float x = (((float)i / texsize) - 0.5f) * -1000.0f; //invert axis
+			float y = (((float)j / texsize) - 0.5f) * 1000.0f;
+			float z = (((float)k / texsize) - 0.5f) * 1000.0f;
+
+			//this is good for world coordinates sample
+			//float x = (((float)i / texsize) - 0.5f) * 100.0f;
+			//float y = (((float)j / texsize) - 0.5f) * 100.0f + 25; //250 to put the bunny in the center of the render
+			//float z = (((float)k / texsize) - 0.5f) * 100.0f;
+
+			int r = 0;
+			int g = 0;
+			int b = 0;
+
+			//float data = grid->getValue(x - gridx * 1000, y - gridy * 1000, z - gridz * 1000);
+			float data = grid->getValue(y - gridy * 1000, x - gridx * 1000, z - gridz * 1000);
+
+			//if (data > 0)
+			//if (data != BACKGROUNDVALUE)
+			if (data != 1.5)
+			{
+				r = 255;
+				g = 255;
+			}
+
+			if (BOUNDINGBOX == 1)
+			{
+				if ((i == 0 || i == (texsize - 1)) && (k == 0 || k == (texsize - 1)) ||
+					(j == 0 || j == (texsize - 1)) && (k == 0 || k == (texsize - 1)) ||
+					(i == 0 && j == 0) || (i == 0 && j == (texsize - 1)) ||
+					(i == (texsize - 1) && j == 0) || (i == (texsize - 1) && j == (texsize - 1))
+					)
+				{
+					r = 255;
+					g = 255;
+				}
+			}
+
+			//#pragma omp critical //useless here
+			*tex = r;
+			*(tex + 1) = g;
+			*(tex + 2) = b;
+			*(tex + 3) = 255;
+			tex += 4;
+		}
+		
+		glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);  // release pointer to mapping buffer
+	}
+
+	// it is good idea to release PBOs with ID 0 after use.
+	// Once bound with 0, all pixel operations behave normal ways.
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+}
+
 PT(Texture) Render3dBigTexture()
 {
 	int texsize = TEXTURESIZE;
@@ -739,6 +867,7 @@ PT(Texture) Render3dBigTexture()
 	bunn->setup_3d_texture(texsize, texsize, texsize, Texture::ComponentType::T_float, Texture::Format::F_rgba8);
 
 	//std::cout << " grid x: " << gridx << " y: " << gridy << " z: " << gridz << "  \n";
+	std::cout << "3D Texture size in bytes: " << (texsize * texsize * texsize * 4) << "\n";
 
 	for (int k = 0; k < texsize; k++) {
 		PNMImage* pPNMImage = new PNMImage(texsize, texsize, 4);
@@ -1077,7 +1206,8 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 		}
 
 		//Copy/Refresh 3d sectors
-		refreshGridFrustrum();
+		//refreshGridFrustrum();
+		refreshGridFrustrumPBO();
 	}
 	
 	CAM_x = nCAM_x;
@@ -1368,7 +1498,7 @@ void initGridFrustrum()
 				gridFrustrum[key[z]] = gridTextureArray[z];
 
 				usedTexturesVector[gridTextureArray[z]] = true;
-
+				
 				z++;
 			}
 		}
@@ -1398,11 +1528,32 @@ void initBigTexture()
 			for (int u = 0; u < ((GRIDEXTENSION * 2) + 1); u++)
 			{
 				callOpenGLSubImage(GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w], 0, 0);
+			}
+		}
+	}
+}
 
-				//if (DENOISE == 1) {
-				//	callOpenGLSubImage(GRID_x + gridoffsetx[u], GRID_y + gridoffsety[v], GRID_z + gridoffsetz[w], 0, 1);
-				//}
+void initBigTexturePBO()
+{
+	KeyTriple key[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
 
+	int z = 0;
+	for (int w = 0; w < ((GRIDEXTENSION * 2) + 1); w++)
+	{
+		for (int v = 0; v < ((GRIDEXTENSION * 2) + 1); v++)
+		{
+			for (int u = 0; u < ((GRIDEXTENSION * 2) + 1); u++)
+			{
+				key[z] = std::make_tuple(GRID_y + gridoffsety[v], GRID_x + gridoffsetx[u], GRID_z + gridoffsetz[w]);
+
+
+				refresh3dTexturePBO(gridoffsetx[u], gridoffsety[v], gridoffsetz[w], z, 1);
+				usedTexturesVectorPBO[z] = true;
+
+				gridFrustrumPBO[key[z]] = z;
+
+				callOpenGLSubImagePBO(gridoffsety[v], gridoffsetx[u], gridoffsetz[w], z, 0);//put antelast parameter in 0 to render correctly
+				z++;
 			}
 		}
 	}
@@ -1425,7 +1576,6 @@ void refreshGridFrustrum()
 
 	//init used textures vector
 	UsedTextures::iterator it;
-
 
 	for (it = usedTexturesVector.begin(); it != usedTexturesVector.end(); it++)
 	{
@@ -1507,6 +1657,130 @@ void refreshGridFrustrum()
 
 				refreshQueue.push(keydata);
 				callOpenGLSubImage(std::get<0>(keydata), std::get<1>(keydata), std::get<2>(keydata), 1, 0); //refresh texture with empty
+				break;
+			}
+		}
+	}
+
+}
+
+void refreshGridFrustrumPBO()
+{
+	GridFrustrumPBO cache = gridFrustrumPBO;
+	gridFrustrumPBO.clear();
+
+	KeyTriple key[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
+
+	std::vector<CopyTuple> copyarray;
+
+	//std::vector<RefreshTuple> refresharray;
+	std::vector<KeyTriple> refresharray;
+
+	KeyTriple keyold;
+
+	//init used textures vector
+	UsedTexturesPBO::iterator itpbo;
+
+	int numberofPBOs = ((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1);
+	int numberindex = 0;
+
+	for (itpbo = usedTexturesVectorPBO.begin(); itpbo != usedTexturesVectorPBO.end(); itpbo++)
+	{
+		usedTexturesVectorPBO[itpbo->first] = false;
+
+		numberindex++;
+
+		if (numberindex == numberofPBOs)
+		{
+			break;
+		}
+	}
+
+
+	int z = 0;
+	for (int w = 0; w < ((GRIDEXTENSION * 2) + 1); w++)
+	{
+		for (int v = 0; v < ((GRIDEXTENSION * 2) + 1); v++)
+		{
+			for (int u = 0; u < ((GRIDEXTENSION * 2) + 1); u++)
+			{
+				//invert x and y axis
+				key[z] = std::make_tuple(GRID_x + gridoffsety[v], GRID_y + gridoffsetx[u], GRID_z + gridoffsetz[w]); //inverted axis
+
+				if (cache.count(key[z]) == 1)
+				{
+					gridFrustrumPBO[key[z]] = cache[key[z]];
+					usedTexturesVectorPBO[cache[key[z]]] = true;
+					callOpenGLSubImagePBO(GRID_x + gridoffsety[v], GRID_y + gridoffsetx[u], GRID_z + gridoffsetz[w], cache[key[z]], 0);
+				}
+				else
+				{
+					refresharray.push_back(std::make_tuple(GRID_x + gridoffsety[v], GRID_y + gridoffsetx[u], GRID_z + gridoffsetz[w]));
+				}
+
+				z++;
+			}
+		}
+	}
+
+	////-----------debugging just refreshing everything----------------------
+	//refresharray.push_back(std::make_tuple(0, GRID_x - 1, GRID_y - 1, GRID_z - 1));
+	//refresharray.push_back(std::make_tuple(1, GRID_x + 0, GRID_y - 1, GRID_z - 1));
+	//refresharray.push_back(std::make_tuple(2, GRID_x + 1, GRID_y - 1, GRID_z - 1));
+
+	//refresharray.push_back(std::make_tuple(3, GRID_x - 1, GRID_y, GRID_z - 1));
+	//refresharray.push_back(std::make_tuple(4, GRID_x + 0, GRID_y, GRID_z - 1));
+	//refresharray.push_back(std::make_tuple(5, GRID_x + 1, GRID_y, GRID_z - 1));
+
+	//refresharray.push_back(std::make_tuple(6, GRID_x - 1, GRID_y + 1, GRID_z - 1));
+	//refresharray.push_back(std::make_tuple(7, GRID_x + 0, GRID_y + 1, GRID_z - 1));
+	//refresharray.push_back(std::make_tuple(8, GRID_x + 1, GRID_y + 1, GRID_z - 1));
+
+	//refresharray.push_back(std::make_tuple(9, GRID_x - 1, GRID_y - 1, GRID_z));
+	//refresharray.push_back(std::make_tuple(10, GRID_x + 0, GRID_y - 1, GRID_z));
+	//refresharray.push_back(std::make_tuple(11, GRID_x + 1, GRID_y - 1, GRID_z));
+
+	//refresharray.push_back(std::make_tuple(12, GRID_x - 1, GRID_y, GRID_z));
+	//refresharray.push_back(std::make_tuple(13, GRID_x, GRID_y, GRID_z)); //Dont refresh center, just copy it from near grids
+	//refresharray.push_back(std::make_tuple(14, GRID_x + 1, GRID_y, GRID_z));
+
+	//refresharray.push_back(std::make_tuple(15, GRID_x - 1, GRID_y + 1, GRID_z));
+	//refresharray.push_back(std::make_tuple(16, GRID_x + 0, GRID_y + 1, GRID_z));
+	//refresharray.push_back(std::make_tuple(17, GRID_x + 1, GRID_y + 1, GRID_z));
+
+	//refresharray.push_back(std::make_tuple(18, GRID_x - 1, GRID_y - 1, GRID_z + 1));
+	//refresharray.push_back(std::make_tuple(19, GRID_x + 0, GRID_y - 1, GRID_z + 1));
+	//refresharray.push_back(std::make_tuple(20, GRID_x + 1, GRID_y - 1, GRID_z + 1));
+
+	//refresharray.push_back(std::make_tuple(21, GRID_x - 1, GRID_y, GRID_z + 1));
+	//refresharray.push_back(std::make_tuple(22, GRID_x + 0, GRID_y, GRID_z + 1));
+	//refresharray.push_back(std::make_tuple(23, GRID_x + 1, GRID_y, GRID_z + 1));
+
+	//refresharray.push_back(std::make_tuple(24, GRID_x - 1, GRID_y + 1, GRID_z + 1));
+	//refresharray.push_back(std::make_tuple(25, GRID_x + 0, GRID_y + 1, GRID_z + 1));
+	//refresharray.push_back(std::make_tuple(26, GRID_x + 1, GRID_y + 1, GRID_z + 1));
+
+	int numberofpbo = ((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1);
+
+	for (int i = 0; i < refresharray.size(); i++)
+	{
+
+		for (itpbo = usedTexturesVectorPBO.begin(); itpbo != usedTexturesVectorPBO.end(); itpbo++)
+		{
+
+			if (usedTexturesVectorPBO[itpbo->first] == false)
+			{
+
+				KeyTriple keydata = refresharray[i];
+				RefreshTuple refreshdata = std::make_tuple(std::get<0>(keydata), std::get<1>(keydata), std::get<2>(keydata), itpbo->first);
+				usedTexturesVectorPBO[itpbo->first] = true;
+
+				gridFrustrumPBO[keydata] = itpbo->first;
+
+
+				callOpenGLSubImagePBO(std::get<0>(keydata), std::get<1>(keydata), std::get<2>(keydata), numberofpbo, 0);//empty texture first!
+				
+				refreshQueuePBO.push(refreshdata);
 				break;
 			}
 		}
@@ -1604,6 +1878,7 @@ int main(int argc, char *argv[]) {
 	}
 	else
 	{
+		atexit(exitCB);//clear everything
 		MakeShadertoy(argc, argv);
 	}
 
@@ -2120,6 +2395,8 @@ void MakeShadertoy(int argc, char *argv[])
 	framework.open_framework(argc, argv);
 
 	load_prc_file_data("", "show-frame-rate-meter 1");
+	load_prc_file_data("", "lock-to-one-cpu 0"); // unlocks threading possiblity
+	load_prc_file_data("", "support-threads 1");
 	
 	if (USEPSTAT){
 		load_prc_file_data("", "want-pstats 1");
@@ -2213,7 +2490,8 @@ void MakeShadertoy(int argc, char *argv[])
 	// to the task function.
 	AsyncTaskChain *chain = taskMgr->make_task_chain("changevdbgrid");
 	chain->set_num_threads(1);
-	chain->set_thread_priority(ThreadPriority::TP_high);
+	//chain->set_frame_budget(-1);
+	//chain->set_thread_priority(ThreadPriority::TP_low);
 
 	//renderChain = taskMgr->make_task_chain("renderchain");
 	//renderChain->set_num_threads(2);
@@ -2229,6 +2507,12 @@ void MakeShadertoy(int argc, char *argv[])
 	taskMgr->add(new GenericAsyncTask("Camera Motion", &cameraMotionTask, nullptr));
 	taskMgr->add(modifytask);
 	taskMgr->add(refreshtask);
+	taskMgr->start_threads();
+
+	//RefreshThread* thread = new RefreshThread();//just checking if threading works
+	//thread->start(ThreadPriority::TP_low, false);//just checking if threading works
+	//RefreshThread* rthread = new RefreshThread(&refreshQueue, gridFrustrum, &renderQueue, grid, TEXTURESIZE, BOUNDINGBOX);
+	//rthread->start(ThreadPriority::TP_low, false);
 
 	int state = 0;
 	// This is a simpler way to do stuff every frame,
@@ -2246,6 +2530,12 @@ void MakeShadertoy(int argc, char *argv[])
 			if (glTextureSubImage3D == 0) {
 				glTextureSubImage3D = (PFNGLTEXTURESUBIMAGE3DPROC)GetAnyGLFuncAddress("glTextureSubImage3D");
 				glGenerateTextureMipmap = (PFNGLGENERATETEXTUREMIPMAPPROC)GetAnyGLFuncAddress("glGenerateTextureMipmap");
+				glGenBuffers = (PFNGLGENBUFFERSPROC) GetAnyGLFuncAddress("glGenBuffers");
+				glBindBuffer = (PFNGLBINDBUFFERPROC) GetAnyGLFuncAddress("glBindBuffer");
+				glBufferData = (PFNGLBUFFERDATAPROC) GetAnyGLFuncAddress("glBufferData");
+				glDeleteBuffers = (PFNGLDELETEBUFFERSPROC) GetAnyGLFuncAddress("glDeleteBuffers");
+				glMapBuffer = (PFNGLMAPBUFFERPROC) GetAnyGLFuncAddress("glMapBuffer");
+				glUnmapBuffer = (PFNGLUNMAPBUFFERPROC) GetAnyGLFuncAddress("glUnmapBuffer");
 			}
 			else {
 				state = 1;
@@ -2254,7 +2544,10 @@ void MakeShadertoy(int argc, char *argv[])
 		}
 		case 1:
 		{
-			initBigTexture();
+			initPixelBufferObject();
+			//initBigTexture();
+			initCleanTexturePBO();
+			initBigTexturePBO();
 			state = 2;
 			break;
 		}
@@ -2268,13 +2561,21 @@ void MakeShadertoy(int argc, char *argv[])
 
 		
 		//while (renderQueue.size() > 0) { //while is killing the thread
-		if (renderQueue.size() > 0) {
-			//std::cout << "Queue size: " << renderQueue.size() << "\n";
-			KeyTriple args = renderQueue.front();
-			renderQueue.pop();
-			
-			callOpenGLSubImage(std::get<0>(args), std::get<1>(args), std::get<2>(args), 0, 0);//put antelast parameter in 0 to render correctly
-			
+		//if (renderQueue.size() > 0) {
+		//	//std::cout << "Queue size: " << renderQueue.size() << "\n";
+		//	KeyTriple args = renderQueue.front();
+		//	renderQueue.pop();
+		//	
+		//	callOpenGLSubImage(std::get<0>(args), std::get<1>(args), std::get<2>(args), 0, 0);//put antelast parameter in 0 to render correctly
+		//	
+		//}
+
+		if (renderQueuePBO.size() > 0)
+		{
+			RefreshTuple args = renderQueuePBO.front();
+			renderQueuePBO.pop();
+
+			callOpenGLSubImagePBO(std::get<0>(args), std::get<1>(args), std::get<2>(args), std::get<3>(args), 0);//put antelast parameter in 0 to render correctly
 		}
 
 		
@@ -2358,4 +2659,183 @@ int callOpenGLSubImage(int posx, int posy, int posz, int debug, int quad)
 
 	//std::cout << "Texture gl error: " << err << "\n";
 	//free(tex);
+}
+
+int callOpenGLSubImagePBO(int posx, int posy, int posz, int pboindex, int quad)
+{
+	//std::cout << "Texture gl function address: " << (int)glTextureSubImage3D << "\n";
+	PT(GraphicsStateGuardianBase) gsg = mainWindow->get_graphics_window()->get_gsg();
+	//GLTextureContext *GLtex = DCAST(GLTextureContext, mainQuad[0].get_texture()->prepare_now(0, gsg->get_prepared_objects(), gsg));
+	GLTextureContext *GLtex;
+
+	if (quad == 0) {
+		GLtex = DCAST(GLTextureContext, mainQuad[0].get_texture()->prepare_now(0, gsg->get_prepared_objects(), gsg));
+	}
+	else
+	{
+		GLtex = DCAST(GLTextureContext, mainQuadNorm[0].get_texture()->prepare_now(0, gsg->get_prepared_objects(), gsg));
+	}
+
+	GLuint texA = GLtex->_index;
+	GLuint internal_format = GLtex->_internal_format;
+	GLuint wi = GLtex->_width;
+	GLuint he = GLtex->_height;
+	GLuint de = GLtex->_depth;
+	//std::cout << "Texture gl id: " << texA << " int format: " << internal_format << " " << wi << " " << he << " " << de << "\n";
+
+
+	int bigsize = TEXTURESIZE * ((GRIDEXTENSION * 2) + 1);
+
+	int centerx = GRIDEXTENSION;
+	int centery = GRIDEXTENSION;
+	int centerz = GRIDEXTENSION;
+
+
+	int finalposx;
+	int finalposy;
+	int finalposz;
+
+
+	finalposx = (centerx - posx + GRID_x) * TEXTURESIZE;
+	finalposy = (centery + posy - GRID_y) * TEXTURESIZE;
+	finalposz = (centerz - posz + GRID_z) * TEXTURESIZE;
+
+
+	KeyTriple key = std::make_tuple(posx, posy, posz);
+
+	//std::cout << "memory to access: " << (int)tex << "\n";
+	//std::cout << " - " << centerx << " " << centery << " " <<  centerz << " " <<  GRID_x << " " <<  GRID_y << " " <<  GRID_z << "\n";
+	//std::cout << " x y z " << posx << " " << posy << " " << posz << " " << finalposx << " " << finalposy << " " << finalposz << " " << bigsize << "\n";
+	//std::cout << "NANA " << finalposx << " " << finalposy << " " << finalposz << "\n";
+
+	// bind the texture and PBO
+	glBindTexture(GL_TEXTURE_3D, texA);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[pboindex]);
+
+	// copy pixels from PBO to texture object
+	// Use offset instead of ponter.
+	//glTextureSubImage3D(GL_TEXTURE_3D, 0, 0, 0, IMAGE_WIDTH, IMAGE_HEIGHT, PIXEL_FORMAT, GL_UNSIGNED_BYTE, 0);
+
+	
+	glTextureSubImage3D(texA, 0, finalposx, finalposy, finalposz, TEXTURESIZE, TEXTURESIZE, TEXTURESIZE, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+	//glGenerateTextureMipmap(texA); //This will fail in GTX960
+
+	// it is good idea to release PBOs with ID 0 after use.
+	// Once bound with 0, all pixel operations behave normal ways.
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
+	return 0;
+	//GLenum err;
+	//err = glGetError();
+
+	//std::cout << "Texture gl error: " << err << "\n";
+	//free(tex);
+}
+
+int initPixelBufferObject()
+{
+	int texsize = TEXTURESIZE;
+	int DATA_SIZE = texsize * texsize * texsize * 4 * (sizeof(char));
+
+	int numberofpbo = ((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1); 
+	numberofpbo += 1; //adding a last buffer as an empty texture buffer
+
+	glGenBuffers(numberofpbo, pboIds);
+
+	for (int i = 0; i < numberofpbo; i++) {
+		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[i]);
+		glBufferData(GL_PIXEL_UNPACK_BUFFER, DATA_SIZE, 0, GL_STREAM_DRAW);
+
+		usedTexturesVectorPBO[i] = false;
+	}
+
+	usedTexturesVectorPBO[numberofpbo - 1] = true; //put the empty texture as always used
+	
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0); // it is good idea to release PBOs with ID 0 after use.
+	return 0;
+}
+
+void exitCB()
+{
+	clearSharedMem();
+}
+
+void clearSharedMem()
+{
+	int numberofpbo = ((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2));
+	numberofpbo += 1; //add the last empty texture
+
+	glDeleteBuffers(numberofpbo, pboIds);
+}
+
+void initCleanTexturePBO()
+{
+	int texsize = TEXTURESIZE;
+	int DATA_SIZE = texsize * texsize * texsize * 4 * (sizeof(char));
+	int numberofpbo = (((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)) + 1; //adding a last buffer as an empty texture buffer
+
+	// bind PBO to update pixel values
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pboIds[numberofpbo - 1]);
+
+	// map the buffer object into client's memory
+	// Note that glMapBuffer() causes sync issue.
+	// If GPU is working with this buffer, glMapBuffer() will wait(stall)
+	// for GPU to finish its job. To avoid waiting (stall), you can call
+	// first glBufferData() with NULL pointer before glMapBuffer().
+	// If you do that, the previous data in PBO will be discarded and
+	// glMapBuffer() returns a new allocated pointer immediately
+	// even if GPU is still working with the previous data.
+	glBufferData(GL_PIXEL_UNPACK_BUFFER, DATA_SIZE, 0, GL_STREAM_DRAW);
+	GLubyte* ptr = (GLubyte*)glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY);
+	if (ptr)
+	{
+		//std::cout << "refreshing PBO index: " << pboindex << "\n";
+		unsigned char * tex = (unsigned char *)ptr;
+		// update data directly on the mapped buffer
+
+		//#pragma omp parallel for shared(tex, grid) //useless here
+		for (int n = 0; n < texsize * texsize * texsize * 4; n += 4) {
+
+
+			int j = (n / 4) % texsize;
+			int i = floor(((n / 4) % (texsize * texsize)) / texsize);
+			int k = floor((n / 4) / (texsize * texsize));
+
+			//This is good for index sample
+			float x = (((float)i / texsize) - 0.5f) * -1000.0f; //invert axis
+			float y = (((float)j / texsize) - 0.5f) * 1000.0f;
+			float z = (((float)k / texsize) - 0.5f) * 1000.0f;
+
+			int r = 0;
+			int g = 0;
+			int b = 0;
+
+			if (BOUNDINGBOX == 1)
+			{
+				if ((i == 0 || i == (texsize - 1)) && (k == 0 || k == (texsize - 1)) ||
+					(j == 0 || j == (texsize - 1)) && (k == 0 || k == (texsize - 1)) ||
+					(i == 0 && j == 0) || (i == 0 && j == (texsize - 1)) ||
+					(i == (texsize - 1) && j == 0) || (i == (texsize - 1) && j == (texsize - 1))
+					)
+				{
+					r = 255;
+					g = 255;
+				}
+			}
+
+			//#pragma omp critical //useless here
+			*tex = r;
+			*(tex + 1) = g;
+			*(tex + 2) = b;
+			*(tex + 3) = 255;
+			tex += 4;
+		}
+
+		glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);  // release pointer to mapping buffer
+	}
+
+	// it is good idea to release PBOs with ID 0 after use.
+	// Once bound with 0, all pixel operations behave normal ways.
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 }
