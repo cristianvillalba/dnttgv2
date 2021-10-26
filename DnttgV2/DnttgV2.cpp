@@ -43,7 +43,7 @@
 #define INTERNALRES 256 //internal texture resolution
 #define BUNNY 1 //old vs new raycaster
 #define BOUNDINGBOX 1 //bounding box of 3d texture
-#define TEXTURESIZE 128 //3d texture resolution
+#define TEXTURESIZE 96 //3d texture resolution
 #define GRIDEXTENSION 1 //how many side voxels to render, increasing more than 1 gives performance issues, try to play with grid size instead
 #define DENOISE 0 //denoising shader as an image post processing
 #define USEPSTAT 0 //using pstat
@@ -404,8 +404,8 @@ AsyncTask::DoneStatus modifyGrid(GenericAsyncTask *task, void *data)
 
 		//only refresh center
 		KeyTriple params = std::make_tuple(GRID_x, GRID_y, GRID_z);
-		refresh3dTextureAsArray(gridFrustrum[params], GRID_x, GRID_y, GRID_z);
-		refreshQueue.push(params);
+		int pboindex = gridFrustrumPBO[params];
+		refreshQueuePBO.push(std::make_tuple(GRID_x, GRID_y, GRID_z, pboindex));
 
 		//SPAWN = false;
 	}
