@@ -43,7 +43,7 @@
 #define INTERNALRES 256 //internal texture resolution
 #define BUNNY 1 //old vs new raycaster
 #define BOUNDINGBOX 1 //bounding box of 3d texture
-#define TEXTURESIZE 96 //3d texture resolution
+#define TEXTURESIZE 64 //3d texture resolution
 #define GRIDEXTENSION 1 //how many side voxels to render, increasing more than 1 gives performance issues, try to play with grid size instead
 #define DENOISE 0 //denoising shader as an image post processing
 #define USEPSTAT 0 //using pstat
@@ -117,7 +117,7 @@ int GRID_z = 0;
 //Grid parameters
 float GRID_SCALE = 10.0f; //this number is the grid extension, 10 means from -5.0 to 5.0 x y and z
 float TEXTURE_3D_EXTENSION = (GRIDEXTENSION * 2.0) + 1.0;
-float VOXEL_SIZE = 20.0f; //this number will divide the GRID_SCALE to get the actual voxel size
+float VOXEL_SIZE = 64.0f; //this number will divide the GRID_SCALE to get the actual voxel size
 
 //grid frustrum
 GridFrustrum gridFrustrum;
@@ -157,6 +157,11 @@ std::queue<KeyTriple> renderQueue;
 std::queue<KeyTriple> refreshQueue;
 std::queue<RefreshTuple> renderQueuePBO;
 std::queue<RefreshTuple> refreshQueuePBO;
+
+
+int howmanyrefreshes = 0;  //this variable controls the mip generation after all the 3d texture parts are refreshed
+int LODgenerate = 0;//this variable controls whenever we need to re generate the mipmap levels
+int CleanMIP = 0;//this variable controls whenever we need to clean the mipmap levels
 
 //Pixel buffer Object to fast transfer
 //GLuint pboIds[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
@@ -431,7 +436,6 @@ AsyncTask::DoneStatus refreshGrid(GenericAsyncTask *task, void *data)
 		refresh3dTexturePBO(std::get<1>(refresh), std::get<0>(refresh), std::get<2>(refresh), std::get<3>(refresh), 0);
 		renderQueuePBO.push(refresh);
 	}
-
 	return AsyncTask::DS_cont;
 }
 
@@ -1755,7 +1759,11 @@ void refreshGridFrustrumPBO()
 	//refresharray.push_back(std::make_tuple(25, GRID_x + 0, GRID_y + 1, GRID_z + 1));
 	//refresharray.push_back(std::make_tuple(26, GRID_x + 1, GRID_y + 1, GRID_z + 1));
 
+
 	int numberofpbo = ((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1);
+
+	howmanyrefreshes = refresharray.size();
+	std::queue<RefreshTuple> refreshQueuePBOBackup;
 
 	for (int i = 0; i < refresharray.size(); i++)
 	{
@@ -1775,11 +1783,24 @@ void refreshGridFrustrumPBO()
 
 				callOpenGLSubImagePBO(std::get<0>(keydata), std::get<1>(keydata), std::get<2>(keydata), numberofpbo, 0);//empty texture first!
 				
-				refreshQueuePBO.push(refreshdata);
+				//refreshQueuePBO.push(refreshdata);
+				refreshQueuePBOBackup.push(refreshdata);
 				break;
 			}
 		}
 	}
+
+	CleanMIP = 1;
+
+	while(refreshQueuePBOBackup.size() > 0)
+	{
+		RefreshTuple refreshdata = refreshQueuePBOBackup.front();
+		refreshQueuePBOBackup.pop();
+
+		refreshQueuePBO.push(refreshdata);
+	}
+	
+	LODgenerate = 1;
 }
 
 void CleanTexture(PT(Texture) origin)
@@ -2535,9 +2556,9 @@ void MakeShadertoy(int argc, char *argv[])
 		case 1:
 		{
 			initPixelBufferObject();
-			//initBigTexture();
 			initCleanTexturePBO();
 			initBigTexturePBO();
+			generateMIPS(0);
 			state = 2;
 			break;
 		}
@@ -2566,9 +2587,25 @@ void MakeShadertoy(int argc, char *argv[])
 			renderQueuePBO.pop();
 
 			callOpenGLSubImagePBO(std::get<0>(args), std::get<1>(args), std::get<2>(args), std::get<3>(args), 0);//put antelast parameter in 0 to render correctly
+
+			howmanyrefreshes -= 1;
 		}
 
-		
+		if (LODgenerate == 1)
+		{
+			if (howmanyrefreshes == 0)
+			{
+				std::cout << "make new mip...\n";
+				generateMIPS(0);
+				LODgenerate = 0;
+			}
+		}
+		if (CleanMIP == 1)
+		{
+			std::cout << "clean mip...\n";
+			generateMIPS(0);
+			CleanMIP = 0;
+		}
 
 	}
 
@@ -2721,6 +2758,29 @@ int callOpenGLSubImagePBO(int posx, int posy, int posz, int pboindex, int quad)
 
 	//std::cout << "Texture gl error: " << err << "\n";
 	//free(tex);
+}
+
+int generateMIPS(int quad)
+{
+	//std::cout << "generating mips...\n";
+	PT(GraphicsStateGuardianBase) gsg = mainWindow->get_graphics_window()->get_gsg();
+	//GLTextureContext *GLtex = DCAST(GLTextureContext, mainQuad[0].get_texture()->prepare_now(0, gsg->get_prepared_objects(), gsg));
+	GLTextureContext *GLtex;
+
+	if (quad == 0) {
+		GLtex = DCAST(GLTextureContext, mainQuad[0].get_texture()->prepare_now(0, gsg->get_prepared_objects(), gsg));
+	}
+	else
+	{
+		GLtex = DCAST(GLTextureContext, mainQuadNorm[0].get_texture()->prepare_now(0, gsg->get_prepared_objects(), gsg));
+	}
+
+	GLuint texA = GLtex->_index;
+
+	glBindTexture(GL_TEXTURE_3D, texA);
+
+	glGenerateTextureMipmap(texA); //This will fail in GTX960
+	return 0;
 }
 
 int initPixelBufferObject()

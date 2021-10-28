@@ -64,6 +64,7 @@ void refresh3dTextureAsArray(unsigned char * texture, int gridx, int gridy, int 
 void refresh3dTexturePBO(int gridx, int gridy, int gridz, int pboindex, int saveptr);
 int callOpenGLSubImage(int posx, int posy, int posz, int debug, int quad);
 int callOpenGLSubImagePBO(int posx, int posy, int posz, int pboindex, int quad);
+int generateMIPS(int quad);
 
 
 
