@@ -40,13 +40,14 @@
 
 #define WIDTH 200  //for bunny - for first raycaster
 #define HEIGHT 200 //for bunny - for first raycaster
-#define INTERNALRES 256 //internal texture resolution
+#define INTERNALRES 128 //internal texture resolution
 #define BUNNY 1 //old vs new raycaster
 #define BOUNDINGBOX 1 //bounding box of 3d texture
 #define TEXTURESIZE 64 //3d texture resolution
 #define GRIDEXTENSION 1 //how many side voxels to render, increasing more than 1 gives performance issues, try to play with grid size instead
 #define DENOISE 0 //denoising shader as an image post processing
 #define USEPSTAT 0 //using pstat
+#define USEMIPS 0//using mipmaps
 
 using std::chrono::duration;
 using std::chrono::duration_cast;
@@ -1762,7 +1763,11 @@ void refreshGridFrustrumPBO()
 
 	int numberofpbo = ((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1);
 
-	howmanyrefreshes = refresharray.size();
+	if (USEMIPS == 1)
+	{
+		howmanyrefreshes = refresharray.size();
+	}
+	
 	std::queue<RefreshTuple> refreshQueuePBOBackup;
 
 	for (int i = 0; i < refresharray.size(); i++)
@@ -1790,8 +1795,11 @@ void refreshGridFrustrumPBO()
 		}
 	}
 
-	CleanMIP = 1;
-
+	if (USEMIPS == 1)
+	{
+		CleanMIP = 1;
+	}
+	
 	while(refreshQueuePBOBackup.size() > 0)
 	{
 		RefreshTuple refreshdata = refreshQueuePBOBackup.front();
@@ -1800,7 +1808,11 @@ void refreshGridFrustrumPBO()
 		refreshQueuePBO.push(refreshdata);
 	}
 	
-	LODgenerate = 1;
+	if (USEMIPS == 1)
+	{
+		LODgenerate = 1;
+	}
+	
 }
 
 void CleanTexture(PT(Texture) origin)
@@ -2558,7 +2570,11 @@ void MakeShadertoy(int argc, char *argv[])
 			initPixelBufferObject();
 			initCleanTexturePBO();
 			initBigTexturePBO();
-			generateMIPS(0);
+
+			if (USEMIPS == 1) {
+				generateMIPS(0);
+			}
+
 			state = 2;
 			break;
 		}
@@ -2588,25 +2604,30 @@ void MakeShadertoy(int argc, char *argv[])
 
 			callOpenGLSubImagePBO(std::get<0>(args), std::get<1>(args), std::get<2>(args), std::get<3>(args), 0);//put antelast parameter in 0 to render correctly
 
-			howmanyrefreshes -= 1;
-		}
-
-		if (LODgenerate == 1)
-		{
-			if (howmanyrefreshes == 0)
-			{
-				std::cout << "make new mip...\n";
-				generateMIPS(0);
-				LODgenerate = 0;
+			if (USEMIPS == 1) {
+				howmanyrefreshes -= 1;
 			}
 		}
-		if (CleanMIP == 1)
-		{
-			std::cout << "clean mip...\n";
-			generateMIPS(0);
-			CleanMIP = 0;
-		}
 
+		if (USEMIPS == 1)
+		{
+			if (LODgenerate == 1)
+			{
+				if (howmanyrefreshes == 0)
+				{
+					std::cout << "make new mip...\n";
+					generateMIPS(0);
+					LODgenerate = 0;
+				}
+			}
+
+			if (CleanMIP == 1)
+			{
+				std::cout << "clean mip...\n";
+				generateMIPS(0);
+				CleanMIP = 0;
+			}
+		}
 	}
 
 	framework.close_framework();
