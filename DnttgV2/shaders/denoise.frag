@@ -5,7 +5,7 @@ uniform sampler2D p3d_Texture1;
 uniform float osg_FrameTime;
 uniform vec3 params; //custom params vector (scale, scale, internal resolution)
 
-float denoiseStrength = 3.0;
+float denoiseStrength = 1.5;
 
 // Input from vertex shader
 in vec2 texcoord;

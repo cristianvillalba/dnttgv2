@@ -18,7 +18,8 @@ uniform vec3 voxparams; //custom params vector (voxelsize, voxelsize, voxelsize)
 //in vec2 texcoord;
 uniform float osg_FrameTime;
 
-int lodvalue = 3; //3 seems a good starting point
+int lodvalue = 0; //3 seems a good starting point
+//int lodvalue = int(osg_FrameTime) % 4;
 
 float rand(vec2 co){
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
@@ -35,7 +36,7 @@ float sdBox( vec3 p, vec3 b )
   return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
 }
 
-//int lodvalue = int(osg_FrameTime) % 5;
+
 
 float map( in vec3 p )
 {
@@ -205,12 +206,13 @@ vec3 getRayMipmap(vec3 ro, vec3 rd)
 	vec3 pos;
 	vec3 n;
 	
-	lodvalue = 3;
+	lodvalue = 4;
 	
-	for (int i = 3; i > 1; i--) {
+	for (int i = 4; i > 1; i--) {
 		bool hit;
 		
-		voxelSize = vec3(params.x/voxparams.x) * (lodvalue + 1.0);
+		float bb = pow(2.0, lodvalue);
+		voxelSize = vec3(params.x/voxparams.x) * bb;
 		pos = voxelTrace(rayOrigin, rayDirection, hit, n);
 		
 		if (hit){
@@ -218,6 +220,8 @@ vec3 getRayMipmap(vec3 ro, vec3 rd)
 		}
 		
 		lodvalue = lodvalue - 1;
+		
+		
 	}
 	
 	return (pos + n *0.001* 4.0);
@@ -240,8 +244,8 @@ vec3 getRayColor(vec3 ro, vec3 rd, out float alpha, float i)
     
     vec3 n;
     vec3 pos;
-    vec3 sun_dir = normalize(vec3(0.0, 1.0, 0.0));
-	//vec3 sun_dir = normalize(vec3(sin(osg_FrameTime), cos(osg_FrameTime), 0.0));
+    //vec3 sun_dir = normalize(vec3(0.0, 1.0, 0.0));
+	vec3 sun_dir = normalize(vec3(sin(osg_FrameTime*0.01), cos(osg_FrameTime*0.01), 0.0));
     
     for (int i = 0; i < 2; i++) {
 		bool hit;
@@ -301,9 +305,8 @@ void main() {
 	vec3 col = vec3(0.0);
 	
 	//ro = getRayMipmap(ro, rd); //advance mipmap
-	
-	lodvalue = 0;
-	voxelSize = vec3(params.x/voxparams.x);
+	//lodvalue = 0;//reset lod params
+	//voxelSize = vec3(params.x/voxparams.x);//reset voxel params
 	
 	for (int i = 0; i < RAYSAMPLES; i++)
 	{	

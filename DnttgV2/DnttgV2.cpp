@@ -40,14 +40,14 @@
 
 #define WIDTH 200  //for bunny - for first raycaster
 #define HEIGHT 200 //for bunny - for first raycaster
-#define INTERNALRES 128 //internal texture resolution
+#define INTERNALRES 1024 //internal texture resolution
 #define BUNNY 1 //old vs new raycaster
 #define BOUNDINGBOX 1 //bounding box of 3d texture
 #define TEXTURESIZE 64 //3d texture resolution
 #define GRIDEXTENSION 1 //how many side voxels to render, increasing more than 1 gives performance issues, try to play with grid size instead
 #define DENOISE 0 //denoising shader as an image post processing
 #define USEPSTAT 0 //using pstat
-#define USEMIPS 0//using mipmaps
+#define USEMIPS 1//using mipmaps
 
 using std::chrono::duration;
 using std::chrono::duration_cast;
@@ -79,6 +79,8 @@ unsigned char * emptyTextureArray;
 
 NodePath mainQuad[1];
 NodePath mainQuadNorm[1];
+NodePath mainQuadShadow[1];
+NodePath mainQuadIndirect[1];
 
 unsigned char * gridTextureArray[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
 unsigned char * gridTextureArrayBuffer[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
@@ -197,6 +199,8 @@ PFNGLUNMAPBUFFERPROC glUnmapBuffer;
 PT(Texture) rendertexture01;
 PT(Texture) rendertexture02;
 PT(Texture) rendertexture03;
+PT(Texture) rendertexture04;
+PT(Texture) rendertexture05;
 PT(Texture) prevframe_texture;
 
 NodePath tempAAbillboard; //temporal AA shader billboard
@@ -1228,7 +1232,16 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 	mainQuad[z].set_shader_input("target", lookAtDirection);
 	mainQuad[z].set_shader_input("params", LVector3f(GRID_SCALE, TEXTURE_3D_EXTENSION, INTERNALRES));
 	mainQuad[z].set_shader_input("voxparams", LVector3f(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
-	//mainQuad[z].set_shader_input("params", LVector3f(GRID_SCALE, scalevox, INTERNALRES));
+	
+	mainQuadShadow[z].set_shader_input("campos", camera.get_pos());
+	mainQuadShadow[z].set_shader_input("target", lookAtDirection);
+	mainQuadShadow[z].set_shader_input("params", LVector3f(GRID_SCALE, TEXTURE_3D_EXTENSION, INTERNALRES / 8));
+	mainQuadShadow[z].set_shader_input("voxparams", LVector3f(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
+
+	mainQuadIndirect[z].set_shader_input("campos", camera.get_pos());
+	mainQuadIndirect[z].set_shader_input("target", lookAtDirection);
+	mainQuadIndirect[z].set_shader_input("params", LVector3f(GRID_SCALE, TEXTURE_3D_EXTENSION, INTERNALRES / 8));
+	mainQuadIndirect[z].set_shader_input("voxparams", LVector3f(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
 
 	if (DENOISE == 1)
 	{
@@ -1510,6 +1523,8 @@ void initGridFrustrum()
 	PT(Texture) finaltexture = Render3dBigTexture();
 
 	mainQuad[0].set_texture(finaltexture);
+	mainQuadShadow[0].set_texture(finaltexture);
+	mainQuadIndirect[0].set_texture(finaltexture);
 
 	if (DENOISE == 1) {
 		mainQuadNorm[0].set_texture(finaltexture);
@@ -2081,16 +2096,30 @@ void GenerateMainBillboard(int width, int height, WindowFramework * window, PT(T
 	GeomVertexWriter vertex(vdata, "vertex");
 	GeomVertexWriter texcoord(vdata, "texcoord");
 
-	vertex.add_data3(0.0f, 0.0f, 0.0f);
+	//---800x600---------
+	//vertex.add_data3(10.0f, 0.0f, 0.0f + 150); //topleft
+	//texcoord.add_data2(0.0, 1.0);
+
+	//vertex.add_data3(width + 190, 0.0f, 0.0f + 150); //topright
+	//texcoord.add_data2(1.0, 1.0);
+
+	//vertex.add_data3(10.0f, 0.0f, -height + 10);//bottom left
+	//texcoord.add_data2(0.0, 0.0);
+
+	//vertex.add_data3(width + 190, 0.0f, -height + 10);//bottom right
+	//texcoord.add_data2(1.0, 0.0);
+
+	//----1024x768---------------------
+	vertex.add_data3(10.0f, 0.0f, 0.0f - 10); //topleft
 	texcoord.add_data2(0.0, 1.0);
 
-	vertex.add_data3(width, 0.0f, 0.0f);
+	vertex.add_data3(width - 10, 0.0f, 0.0f - 10); //topright
 	texcoord.add_data2(1.0, 1.0);
 
-	vertex.add_data3(0.0f, 0.0f, -height);
+	vertex.add_data3(10.0f, 0.0f, -height + 10);//bottom left
 	texcoord.add_data2(0.0, 0.0);
 
-	vertex.add_data3(width, 0.0f, -height);
+	vertex.add_data3(width - 10, 0.0f, -height + 10);//bottom right
 	texcoord.add_data2(1.0, 0.0);
 
 	PT(GeomTriangles) prim;
@@ -2136,29 +2165,58 @@ void InitShader(int index, NodePath nodePath, int type)
 	PT(TextureStage) ts = new TextureStage("ts");
 	ts->set_mode(TextureStage::M_modulate);
 
-	if (type == 0)
+	switch (type)
 	{
-		PT(Shader) myShader = Shader::load(Shader::ShaderLanguage::SL_GLSL, "shaders/shader.vert", "shaders/shader.frag");
-		//nodePath.set_texture(ts, bunn);
-		nodePath.set_shader_input("campos", camera.get_pos());
-		nodePath.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
-		nodePath.set_shader_input("target", mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, 1)));
-		nodePath.set_shader(myShader);
-		nodePath.set_transparency(TransparencyAttrib::Mode::M_alpha);
+		case 0: {
+			PT(Shader) myShader = Shader::load(Shader::ShaderLanguage::SL_GLSL, "shaders/shader.vert", "shaders/shaderdiffuse.frag");
+			//nodePath.set_texture(ts, bunn);
+			nodePath.set_shader_input("campos", camera.get_pos());
+			nodePath.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
+			nodePath.set_shader_input("target", mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, 1)));
+			nodePath.set_shader_input("shadow_texture", rendertexture04);
+			nodePath.set_shader_input("indirect_texture", rendertexture05);
+			nodePath.set_shader(myShader);
+			nodePath.set_transparency(TransparencyAttrib::Mode::M_alpha);
 
-		mainQuad[index] = nodePath;
-	}
-	else
-	{
-		PT(Shader) myShader = Shader::load(Shader::ShaderLanguage::SL_GLSL, "shaders/shadernorm.vert", "shaders/shadernorm.frag");
-		//nodePath.set_texture(ts, bunn);
-		nodePath.set_shader_input("campos", camera.get_pos());
-		nodePath.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
-		nodePath.set_shader_input("target", mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, 1)));
-		nodePath.set_shader(myShader);
-		nodePath.set_transparency(TransparencyAttrib::Mode::M_alpha);
+			mainQuad[index] = nodePath;
+			break;
+		}
+		case 1: {
+			PT(Shader) myShader = Shader::load(Shader::ShaderLanguage::SL_GLSL, "shaders/shadernorm.vert", "shaders/shadernorm.frag");
+			//nodePath.set_texture(ts, bunn);
+			nodePath.set_shader_input("campos", camera.get_pos());
+			nodePath.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
+			nodePath.set_shader_input("target", mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, 1)));
+			nodePath.set_shader(myShader);
+			nodePath.set_transparency(TransparencyAttrib::Mode::M_alpha);
 
-		mainQuadNorm[index] = nodePath;
+			mainQuadNorm[index] = nodePath;
+			break;
+		}
+		case 2: {
+			PT(Shader) myShader = Shader::load(Shader::ShaderLanguage::SL_GLSL, "shaders/shadershadow.vert", "shaders/shadershadow.frag");
+			//nodePath.set_texture(ts, bunn);
+			nodePath.set_shader_input("campos", camera.get_pos());
+			nodePath.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES / 8));
+			nodePath.set_shader_input("target", mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, 1)));
+			nodePath.set_shader(myShader);
+			nodePath.set_transparency(TransparencyAttrib::Mode::M_alpha);
+
+			mainQuadShadow[index] = nodePath;
+			break;
+		}
+		case 3: {
+			PT(Shader) myShader = Shader::load(Shader::ShaderLanguage::SL_GLSL, "shaders/shaderindirect.vert", "shaders/shaderindirect.frag");
+			//nodePath.set_texture(ts, bunn);
+			nodePath.set_shader_input("campos", camera.get_pos());
+			nodePath.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES / 8));
+			nodePath.set_shader_input("target", mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, 1)));
+			nodePath.set_shader(myShader);
+			nodePath.set_transparency(TransparencyAttrib::Mode::M_alpha);
+
+			mainQuadIndirect[index] = nodePath;
+			break;
+		}
 	}
 
 	int u = (int)(index % ((GRIDEXTENSION * 2) + 1)) - GRIDEXTENSION;
@@ -2307,6 +2365,7 @@ void GeneratePrePassBillboard(int width, int height, WindowFramework * window, N
 
 void GenerateTextureBuffer(int width, int height, WindowFramework * window, NodePath testscene)
 {
+	//---------------------Main buffer--------------------------------
 	PT(GraphicsOutput) mybuffer;
 	PT(Texture) mytexture;
 	PT(Camera) mycamera;
@@ -2341,6 +2400,7 @@ void GenerateTextureBuffer(int width, int height, WindowFramework * window, Node
 	//Debug only - test if we can add nodes to myscene
 	//testscene.reparent_to(myscene);
 
+	//---------------------Normal buffer--------------------------------
 	PT(GraphicsOutput) mybuffernorm;
 	PT(Texture) mytexturenorm;
 	PT(Camera) mycameranorm;
@@ -2366,6 +2426,8 @@ void GenerateTextureBuffer(int width, int height, WindowFramework * window, Node
 	mycameranorm->set_lens(lensnorm);
 
 
+	//---------------------AA buffer--------------------------------
+
 	PT(GraphicsOutput) mybufferaa;
 	PT(Texture) mytextureaa;
 	PT(Camera) mycameraaa;
@@ -2390,11 +2452,65 @@ void GenerateTextureBuffer(int width, int height, WindowFramework * window, Node
 	lensaa->set_near_far(-1000, 1000);
 	mycameraaa->set_lens(lensaa);
 
+	//---------------------Shadow buffer--------------------------------
+	PT(GraphicsOutput) mybuffershadow;
+	PT(Texture) mytextureshadow;
+	PT(Camera) mycamerashadow;
+	PT(DisplayRegion) regionshadow;
+	NodePath mycameraNPshadow;
+	NodePath mysceneshadow;
+
+	mybuffershadow = window->get_graphics_output()->make_texture_buffer("Shadow Buffer", texsize / 8, texsize / 8);
+	mytextureshadow = mybuffershadow->get_texture();
+	mybuffershadow->set_sort(-100);
+	mycamerashadow = new Camera("main camera");
+	mycameraNPshadow = window->get_render().attach_new_node(mycamerashadow);
+	regionshadow = mybuffershadow->make_display_region();
+	regionshadow->set_camera(mycameraNPshadow);
+	mysceneshadow = NodePath("Main Scene");
+	mysceneshadow.set_depth_test(false);
+	mysceneshadow.set_depth_write(false);
+	mycameraNPshadow.reparent_to(mysceneshadow);
+
+	PT(OrthographicLens) lensshadow = new OrthographicLens();
+	lensshadow->set_film_size(width, height);
+	lensshadow->set_near_far(-1000, 1000);
+	mycamerashadow->set_lens(lensshadow);
+
+	//---------------------Indirect buffer--------------------------------
+	PT(GraphicsOutput) mybufferindirect;
+	PT(Texture) mytextureindirect;
+	PT(Camera) mycameraindirect;
+	PT(DisplayRegion) regionindirect;
+	NodePath mycameraNPindirect;
+	NodePath mysceneindirect;
+
+	mybufferindirect = window->get_graphics_output()->make_texture_buffer("Indirect Buffer", texsize / 8, texsize / 8);
+	mytextureindirect = mybufferindirect->get_texture();
+	mybufferindirect->set_sort(-100);
+	mycameraindirect = new Camera("main camera");
+	mycameraNPindirect = window->get_render().attach_new_node(mycameraindirect);
+	regionindirect = mybufferindirect->make_display_region();
+	regionindirect->set_camera(mycameraNPindirect);
+	mysceneindirect = NodePath("Main Scene");
+	mysceneindirect.set_depth_test(false);
+	mysceneindirect.set_depth_write(false);
+	mycameraNPindirect.reparent_to(mysceneindirect);
+
+	PT(OrthographicLens) lensindirect = new OrthographicLens();
+	lensindirect->set_film_size(width, height);
+	lensindirect->set_near_far(-1000, 1000);
+	mycameraindirect->set_lens(lensindirect);
+
+	//--------------------------------------------------------
 	rendertexture01 = mytexture;
 	rendertexture02 = mytexturenorm;
 	rendertexture03 = mytextureaa;
+	rendertexture04 = mytextureshadow;
+	rendertexture05 = mytextureindirect;
 
 
+	//----------------this generates the main window or billboard to show on screen------------------
 	if (DENOISE == 0) {
 		GenerateMainBillboard(width, height, window, mytexture);
 	}
@@ -2403,15 +2519,19 @@ void GenerateTextureBuffer(int width, int height, WindowFramework * window, Node
 		GenerateMainBillboard(width, height, window, mytextureaa);
 	}
 
-	GenerateBillboard(width, height, window, 0, true, myscene, -width / 2, height / 2, 0);
+	GenerateBillboard(width, height, window, 0, true, myscene, -width / 2, height / 2, 0); //main render
+
+	GenerateBillboard(width, height, window, 0, true, mysceneshadow, -width / 2, height / 2, 2); //shadow render
+
+	GenerateBillboard(width, height, window, 0, true, mysceneindirect, -width / 2, height / 2, 3); //indirect render
 
 	if (DENOISE == 1) {
-		GenerateBillboard(width, height, window, 0, true, myscenenorm, -width / 2, height / 2, 1);
+		GenerateBillboard(width, height, window, 0, true, myscenenorm, -width / 2, height / 2, 1);//normal render
 	}
 
 	if (DENOISE == 1)
 	{
-		GeneratePrePassBillboard(width, height, window, mysceneaa, -width / 2, height / 2);
+		GeneratePrePassBillboard(width, height, window, mysceneaa, -width / 2, height / 2);//prepass render
 	}
 
 }
