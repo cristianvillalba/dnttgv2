@@ -97,6 +97,25 @@ int VDBGrid::initGrid()
 	// so cast the generic grid pointer to a FloatGrid pointer.
 	grid = openvdb::gridPtrCast<openvdb::FloatGrid>(baseGrid);
 	
+	int randvalue = rand() % 255; //put a random value in object
+	float frandvalue = randvalue * 1.0f;
+
+	for (openvdb::FloatGrid::ValueOnIter iter = grid->beginValueOn(); iter; ++iter) {
+		float dist = iter.getValue();
+		//iter.setValue((outside - dist) / width);
+		iter.setValue(frandvalue);
+	}
+
+
+	for (openvdb::FloatGrid::ValueOffIter iter = grid->beginValueOff(); iter; ++iter) {
+		if (iter.getValue() < 0.0) {
+			//iter.setValue(1.0);
+			iter.setValue(frandvalue);
+			iter.setValueOff();
+		}
+	}
+
+
 	//Empty grid
 	//grid = openvdb::FloatGrid::create();
 	//grid->setGridClass(openvdb::GRID_LEVEL_SET);
@@ -153,6 +172,8 @@ float VDBGrid::getValue(float x, float y, float z)
 
 void VDBGrid::spawnBox(LVector3f pos)
 {
+	int randvalue = rand() % 255;//put a random value in object
+	float frandvalue = randvalue * 1.0f;
 	//axis are inverted  looks like 1000 is middle
 	openvdb::tools::changeBackground(grid->tree(), 1.5);
 
@@ -162,7 +183,8 @@ void VDBGrid::spawnBox(LVector3f pos)
 
 	for (openvdb::FloatGrid::ValueOffIter iter = boxGrid->beginValueOff(); iter; ++iter) {
 		if (iter.getValue() < 0.0) {
-			iter.setValue(1.0);
+			//iter.setValue(1.0);
+			iter.setValue(frandvalue);
 			iter.setValueOff();
 		}
 	}
@@ -177,6 +199,9 @@ void VDBGrid::spawnBox(LVector3f pos)
 // also y axis is pointing negative on UP vector
 void VDBGrid::spawnSphere(LVector3f pos, float radius, float voxelsize) //Axis are inverted!
 {
+	int randvalue = rand() % 255;//put a random value in object
+	float frandvalue = (float)randvalue;
+
 	//axis are inverted  looks like 1000 is middle
 
 	// Generate a level set grid.
@@ -197,13 +222,15 @@ void VDBGrid::spawnSphere(LVector3f pos, float radius, float voxelsize) //Axis a
 	// voxels on the narrow band.
 	for (openvdb::FloatGrid::ValueOnIter iter = sphereGrid->beginValueOn(); iter; ++iter) {
 		float dist = iter.getValue();
-		iter.setValue((outside - dist) / width);
+		//iter.setValue((outside - dist) / width);
+		iter.setValue(frandvalue);
 	}
 
 
 	for (openvdb::FloatGrid::ValueOffIter iter = sphereGrid->beginValueOff(); iter; ++iter) {
 		if (iter.getValue() < 0.0) {
-			iter.setValue(1.0);
+			//iter.setValue(1.0);
+			iter.setValue(frandvalue);
 			iter.setValueOff();
 		}
 	}
@@ -231,6 +258,10 @@ void VDBGrid::makeBox(GridType& grid, const openvdb::Vec3f& c)
 	int dim = int(400.0 + padding);
 	// Get a voxel accessor.
 	typename GridType::Accessor accessor = grid.getAccessor();
+
+	int randvalue = rand() % 255;//put a random value in object
+	float frandvalue = (float)randvalue;
+
 	// Compute the signed distance from the surface of the sphere of each
 	// voxel within the bounding box and insert the value into the grid
 	// if it is smaller in magnitude than the background value.
@@ -249,13 +280,15 @@ void VDBGrid::makeBox(GridType& grid, const openvdb::Vec3f& c)
 				// the background value.
 				if (val < inside || outside < val) continue;
 				// Set the distance for voxel (i,j,k).
-				accessor.setValue(ijk, val);
+				//accessor.setValue(ijk, val);
+				accessor.setValue(ijk, frandvalue);
 			}
 		}
 	}
 	// Propagate the outside/inside sign information from the narrow band
 	// throughout the grid.
 	openvdb::tools::signedFloodFill(grid.tree());
+
 }
 
 /*

@@ -81,6 +81,8 @@ NodePath mainQuad[1];
 NodePath mainQuadNorm[1];
 NodePath mainQuadShadow[1];
 NodePath mainQuadIndirect[1];
+NodePath mainQuadObjects[1];
+NodePath mainQuadEdge[1];
 
 unsigned char * gridTextureArray[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
 unsigned char * gridTextureArrayBuffer[((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)];
@@ -201,6 +203,8 @@ PT(Texture) rendertexture02;
 PT(Texture) rendertexture03;
 PT(Texture) rendertexture04;
 PT(Texture) rendertexture05;
+PT(Texture) rendertexture06;
+PT(Texture) rendertexture07;
 PT(Texture) prevframe_texture;
 
 NodePath tempAAbillboard; //temporal AA shader billboard
@@ -480,8 +484,9 @@ PT(Texture) Render3dTexture(int gridx, int gridy, int gridz)
 
 				if (data > 0)
 				{
-					r = 1.0f;
-					g = 1.0f;
+					//r = 1.0f;
+					//g = 1.0f;
+					r = data;
 				}
 
 				if (BOUNDINGBOX == 1)
@@ -493,7 +498,7 @@ PT(Texture) Render3dTexture(int gridx, int gridy, int gridz)
 						)
 					{
 						r = 1.0f;
-						g = 1.0f;
+						//g = 1.0f;
 					}
 				}
 
@@ -614,8 +619,8 @@ unsigned char * Render3dTextureAsArray(int gridx, int gridy, int gridz)
 				//std::cout << "value: " << data << "\n";
 				if (data != 1.5) //why 1.5?
 				{
-					r = 255;
-					g = 255;
+					r = 55;
+					//g = 255;
 				}
 
 				if (BOUNDINGBOX == 1)
@@ -627,7 +632,7 @@ unsigned char * Render3dTextureAsArray(int gridx, int gridy, int gridz)
 						)
 					{
 						r = 255;
-						g = 255;
+						//g = 255;
 					}
 				}
 
@@ -736,8 +741,8 @@ void refresh3dTextureAsArray(unsigned char * texture, int gridx, int gridy, int 
 				//if (data != BACKGROUNDVALUE)
 				if (data != 1.5)
 				{
-					r = 255;
-					g = 255;
+					r = 55;
+					//g = 255;
 				}
 
 				if (BOUNDINGBOX == 1)
@@ -749,7 +754,7 @@ void refresh3dTextureAsArray(unsigned char * texture, int gridx, int gridy, int 
 						)
 					{
 						r = 255;
-						g = 255;
+						//g = 255;
 					}
 				}
 
@@ -829,8 +834,10 @@ void refresh3dTexturePBO(int gridx, int gridy, int gridz, int pboindex, int save
 			//if (data != BACKGROUNDVALUE)
 			if (data != 1.5)
 			{
-				r = 255;
-				g = 255;
+				//r = 255;
+				//g = 255;
+				//r = 55;
+				r = data;
 			}
 
 			if (BOUNDINGBOX == 1)
@@ -842,7 +849,8 @@ void refresh3dTexturePBO(int gridx, int gridy, int gridz, int pboindex, int save
 					)
 				{
 					r = 255;
-					g = 255;
+					//g = 255;
+					//b = 255;
 				}
 			}
 
@@ -893,7 +901,7 @@ PT(Texture) Render3dBigTexture()
 						)
 					{
 						r = 1.0f;
-						g = 1.0f;
+						//g = 1.0f;
 					}
 				}
 
@@ -914,8 +922,10 @@ PT(Texture) Render3dBigTexture()
 
 	//bunn->write(Filename("woodgrain-#.png"), 0, 0, true, false);
 
-	bunn->set_magfilter(SamplerState::FT_linear);
-	bunn->set_minfilter(SamplerState::FT_linear_mipmap_linear);
+	//bunn->set_magfilter(SamplerState::FT_linear); //disable linear interpolation?
+	//bunn->set_minfilter(SamplerState::FT_linear_mipmap_linear); //disable linear interpolation?
+	bunn->set_magfilter(SamplerState::FT_nearest); //disable linear interpolation?
+	bunn->set_minfilter(SamplerState::FT_linear_mipmap_linear); //enable mipmap
 	bunn->set_wrap_u(SamplerState::WrapMode::WM_border_color);
 	bunn->set_wrap_v(SamplerState::WrapMode::WM_border_color);
 	bunn->set_wrap_w(SamplerState::WrapMode::WM_border_color);
@@ -1233,15 +1243,20 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 	mainQuad[z].set_shader_input("params", LVector3f(GRID_SCALE, TEXTURE_3D_EXTENSION, INTERNALRES));
 	mainQuad[z].set_shader_input("voxparams", LVector3f(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
 	
-	mainQuadShadow[z].set_shader_input("campos", camera.get_pos());
-	mainQuadShadow[z].set_shader_input("target", lookAtDirection);
-	mainQuadShadow[z].set_shader_input("params", LVector3f(GRID_SCALE, TEXTURE_3D_EXTENSION, INTERNALRES / 8));
-	mainQuadShadow[z].set_shader_input("voxparams", LVector3f(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
+	//mainQuadShadow[z].set_shader_input("campos", camera.get_pos());
+	//mainQuadShadow[z].set_shader_input("target", lookAtDirection);
+	//mainQuadShadow[z].set_shader_input("params", LVector3f(GRID_SCALE, TEXTURE_3D_EXTENSION, INTERNALRES / 8));
+	//mainQuadShadow[z].set_shader_input("voxparams", LVector3f(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
 
 	mainQuadIndirect[z].set_shader_input("campos", camera.get_pos());
 	mainQuadIndirect[z].set_shader_input("target", lookAtDirection);
 	mainQuadIndirect[z].set_shader_input("params", LVector3f(GRID_SCALE, TEXTURE_3D_EXTENSION, INTERNALRES / 8));
 	mainQuadIndirect[z].set_shader_input("voxparams", LVector3f(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
+
+	mainQuadObjects[z].set_shader_input("campos", camera.get_pos());
+	mainQuadObjects[z].set_shader_input("target", lookAtDirection);
+	mainQuadObjects[z].set_shader_input("params", LVector3f(GRID_SCALE, TEXTURE_3D_EXTENSION, INTERNALRES / 8));
+	mainQuadObjects[z].set_shader_input("voxparams", LVector3f(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
 
 	if (DENOISE == 1)
 	{
@@ -1249,7 +1264,6 @@ AsyncTask::DoneStatus cameraMotionTask(GenericAsyncTask *task, void *data) {
 		mainQuadNorm[z].set_shader_input("target", lookAtDirection);
 		mainQuadNorm[z].set_shader_input("params", LVector3f(GRID_SCALE, TEXTURE_3D_EXTENSION, INTERNALRES));
 		mainQuadNorm[z].set_shader_input("voxparams", LVector3f(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
-		//mainQuadNorm[z].set_shader_input("params", LVector3f(GRID_SCALE, scalevox, INTERNALRES));
 	}
 	
 	//std::cout << "GRID x: " << GRID_x << " y: " << GRID_y << " z: " << GRID_z << "\n";
@@ -1523,8 +1537,10 @@ void initGridFrustrum()
 	PT(Texture) finaltexture = Render3dBigTexture();
 
 	mainQuad[0].set_texture(finaltexture);
-	mainQuadShadow[0].set_texture(finaltexture);
+	//mainQuadShadow[0].set_texture(finaltexture);
 	mainQuadIndirect[0].set_texture(finaltexture);
+	mainQuadObjects[0].set_texture(finaltexture);
+	mainQuadEdge[0].set_texture(rendertexture07);
 
 	if (DENOISE == 1) {
 		mainQuadNorm[0].set_texture(finaltexture);
@@ -1893,7 +1909,7 @@ unsigned char * CleanTextureArray()
 						)
 					{
 						r = 255;
-						g = 255;
+						//g = 255;
 					}
 				}
 
@@ -2168,13 +2184,14 @@ void InitShader(int index, NodePath nodePath, int type)
 	switch (type)
 	{
 		case 0: {
-			PT(Shader) myShader = Shader::load(Shader::ShaderLanguage::SL_GLSL, "shaders/shader.vert", "shaders/shaderdiffuse.frag");
+			PT(Shader) myShader = Shader::load(Shader::ShaderLanguage::SL_GLSL, "shaders/shaderfinal.vert", "shaders/shaderfinal.frag");
 			//nodePath.set_texture(ts, bunn);
 			nodePath.set_shader_input("campos", camera.get_pos());
 			nodePath.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 			nodePath.set_shader_input("target", mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, 1)));
-			nodePath.set_shader_input("shadow_texture", rendertexture04);
+			//nodePath.set_shader_input("shadow_texture", rendertexture04);
 			nodePath.set_shader_input("indirect_texture", rendertexture05);
+			nodePath.set_shader_input("voxparams", LVector3f(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
 			nodePath.set_shader(myShader);
 			nodePath.set_transparency(TransparencyAttrib::Mode::M_alpha);
 
@@ -2187,6 +2204,7 @@ void InitShader(int index, NodePath nodePath, int type)
 			nodePath.set_shader_input("campos", camera.get_pos());
 			nodePath.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES));
 			nodePath.set_shader_input("target", mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, 1)));
+			nodePath.set_shader_input("voxparams", LVector3f(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
 			nodePath.set_shader(myShader);
 			nodePath.set_transparency(TransparencyAttrib::Mode::M_alpha);
 
@@ -2211,10 +2229,35 @@ void InitShader(int index, NodePath nodePath, int type)
 			nodePath.set_shader_input("campos", camera.get_pos());
 			nodePath.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES / 8));
 			nodePath.set_shader_input("target", mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, 1)));
+			nodePath.set_shader_input("normal_texture", rendertexture02);
+			nodePath.set_shader_input("voxparams", LVector3f(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
 			nodePath.set_shader(myShader);
 			nodePath.set_transparency(TransparencyAttrib::Mode::M_alpha);
 
 			mainQuadIndirect[index] = nodePath;
+			break;
+		}
+		case 4: {
+			PT(Shader) myShader = Shader::load(Shader::ShaderLanguage::SL_GLSL, "shaders/shaderobjects.vert", "shaders/shaderobjects.frag");
+			//nodePath.set_texture(ts, bunn);
+			nodePath.set_shader_input("campos", camera.get_pos());
+			nodePath.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES / 8));
+			nodePath.set_shader_input("target", mainWindow->get_render().get_relative_point(camera, LVector3f(0, 0, 1)));
+			nodePath.set_shader_input("voxparams", LVector3f(VOXEL_SIZE, VOXEL_SIZE, VOXEL_SIZE));
+			nodePath.set_shader(myShader);
+			nodePath.set_transparency(TransparencyAttrib::Mode::M_alpha);
+
+			mainQuadObjects[index] = nodePath;
+			break;
+		}
+		case 5: {
+			PT(Shader) myShader = Shader::load(Shader::ShaderLanguage::SL_GLSL, "shaders/shaderedge.vert", "shaders/shaderedge.frag");
+			nodePath.set_shader(myShader);
+			nodePath.set_shader_input("params", LVector3f(GRID_SCALE, GRID_SCALE, INTERNALRES / 8));
+			nodePath.set_shader_input("object_texture", rendertexture06);
+			nodePath.set_transparency(TransparencyAttrib::Mode::M_alpha);
+
+			mainQuadEdge[index] = nodePath;
 			break;
 		}
 	}
@@ -2502,12 +2545,65 @@ void GenerateTextureBuffer(int width, int height, WindowFramework * window, Node
 	lensindirect->set_near_far(-1000, 1000);
 	mycameraindirect->set_lens(lensindirect);
 
+	//---------------------Object buffer--------------------------------
+	PT(GraphicsOutput) mybufferobject;
+	PT(Texture) mytextureobject;
+	PT(Camera) mycameraobject;
+	PT(DisplayRegion) regionobject;
+	NodePath mycameraNPobject;
+	NodePath mysceneobject;
+
+	mybufferobject = window->get_graphics_output()->make_texture_buffer("Object Buffer", texsize / 8, texsize / 8);
+	mytextureobject = mybufferobject->get_texture();
+	mybufferobject->set_sort(-100);
+	mycameraobject = new Camera("main camera");
+	mycameraNPobject = window->get_render().attach_new_node(mycameraobject);
+	regionobject = mybufferobject->make_display_region();
+	regionobject->set_camera(mycameraNPobject);
+	mysceneobject = NodePath("Main Scene");
+	mysceneobject.set_depth_test(false);
+	mysceneobject.set_depth_write(false);
+	mycameraNPobject.reparent_to(mysceneobject);
+
+	PT(OrthographicLens) lensobject = new OrthographicLens();
+	lensobject->set_film_size(width, height);
+	lensobject->set_near_far(-1000, 1000);
+	mycameraobject->set_lens(lensobject);
+
+	//---------------------Edge buffer--------------------------------
+	PT(GraphicsOutput) mybufferedge;
+	PT(Texture) mytextureedge;
+	PT(Camera) mycameraedge;
+	PT(DisplayRegion) regionedge;
+	NodePath mycameraNPedge;
+	NodePath mysceneedge;
+
+	mybufferedge = window->get_graphics_output()->make_texture_buffer("Edge Buffer", texsize / 8, texsize / 8);
+	mytextureedge = mybufferedge->get_texture();
+	mybufferedge->set_sort(-100);
+	mycameraedge = new Camera("main camera");
+	mycameraNPedge = window->get_render().attach_new_node(mycameraedge);
+	regionedge = mybufferedge->make_display_region();
+	regionedge->set_camera(mycameraNPedge);
+	mysceneedge = NodePath("Main Scene");
+	mysceneedge.set_depth_test(false);
+	mysceneedge.set_depth_write(false);
+	mycameraNPedge.reparent_to(mysceneedge);
+
+	PT(OrthographicLens) lensedge = new OrthographicLens();
+	lensedge->set_film_size(width, height);
+	lensedge->set_near_far(-1000, 1000);
+	mycameraedge->set_lens(lensedge);
+
 	//--------------------------------------------------------
+
 	rendertexture01 = mytexture;
 	rendertexture02 = mytexturenorm;
 	rendertexture03 = mytextureaa;
 	rendertexture04 = mytextureshadow;
 	rendertexture05 = mytextureindirect;
+	rendertexture06 = mytextureobject;
+	rendertexture07 = mytextureedge;
 
 
 	//----------------this generates the main window or billboard to show on screen------------------
@@ -2521,13 +2617,17 @@ void GenerateTextureBuffer(int width, int height, WindowFramework * window, Node
 
 	GenerateBillboard(width, height, window, 0, true, myscene, -width / 2, height / 2, 0); //main render
 
-	GenerateBillboard(width, height, window, 0, true, mysceneshadow, -width / 2, height / 2, 2); //shadow render
+	//GenerateBillboard(width, height, window, 0, true, mysceneshadow, -width / 2, height / 2, 2); //shadow render
 
 	GenerateBillboard(width, height, window, 0, true, mysceneindirect, -width / 2, height / 2, 3); //indirect render
 
-	if (DENOISE == 1) {
-		GenerateBillboard(width, height, window, 0, true, myscenenorm, -width / 2, height / 2, 1);//normal render
-	}
+	GenerateBillboard(width, height, window, 0, true, mysceneobject, -width / 2, height / 2, 4); //object render
+
+	GenerateBillboard(width, height, window, 0, true, mysceneedge, -width / 2, height / 2, 5); //edge render
+
+	//if (DENOISE == 1) {
+	GenerateBillboard(width, height, window, 0, true, myscenenorm, -width / 2, height / 2, 1);//normal render
+	//}
 
 	if (DENOISE == 1)
 	{
@@ -3011,7 +3111,7 @@ void initCleanTexturePBO()
 					)
 				{
 					r = 255;
-					g = 255;
+					//g = 255;
 				}
 			}
 

@@ -14,6 +14,8 @@ uniform vec3 target; //custom camdir vector
 uniform vec3 params; //custom params vector (grid scale, grid extension, internal resolution)
 uniform vec3 voxparams; //custom params vector (voxelsize, voxelsize, voxelsize)
 
+out vec4 output_color; //new shader version
+
 // Input from vertex shader
 //in vec2 texcoord;
 uniform float osg_FrameTime;
@@ -269,6 +271,8 @@ void main() {
 	
 	vec3 ro = vec3( campos.x + OFFSET, campos.y -OFFSET, campos.z + OFFSET);
 	vec3 ta = vec3( target.x + OFFSET, target.y -OFFSET, target.z + OFFSET);
+	
+	directLight = vec3(0.0);
 
 	// camera matrix
 	vec3 ww = normalize( ta - ro );
@@ -285,6 +289,6 @@ void main() {
 
 	col = col +  directLight;//direct Light
 	
-	gl_FragColor = vec4(col, alpha); // final ray color + alpha channel
+	output_color = vec4(col, alpha); // final ray color + alpha channel
 	
 }

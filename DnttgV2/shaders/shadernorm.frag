@@ -14,10 +14,12 @@ uniform vec3 target; //custom camdir vector
 uniform vec3 params; //custom params vector (grid scale, grid extension, internal resolution)
 uniform vec3 voxparams; //custom params vector (voxelsize, voxelsize, voxelsize)
 
+out vec4 output_color;										   
 // Input from vertex shader
 //in vec2 texcoord;
 uniform float osg_FrameTime;
 
+int lodvalue = 0;												 
 float rand(vec2 co){
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
@@ -46,14 +48,14 @@ float map( in vec3 p )
 	p.y = -p.y;
 	p /= (params.x*params.y);
 	
-	vec4 color = texture(p3d_Texture0, p);
+	vec4 color = textureLod(p3d_Texture0, p, lodvalue);
 
     return color.r;
 }
 
 // Amanatides & Woo style voxel traversal
 //vec3 voxelSize = vec3(0.05*params.x);//original value
-vec3 voxelSize = vec3(params.x/voxparams.x);//grid size divided by 10. In this case voxels of 1.0
+vec3 voxelSize = vec3(params.x/voxparams.x) * (lodvalue + 1.0);//grid size divided by 10. In this case voxels of 1.0
 
 vec2 seed;//seed for random
 
@@ -72,7 +74,8 @@ vec3 voxelToWorld(vec3 i)
 
 vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
 {
-    const int maxSteps = 256;
+    int maxSteps = 256;
+	int hitindex = 0;			  
     vec3 voxel = worldToVoxel(ro);
     vec3 step = sign(rd);
 	vec3 nearestVoxel = voxel + vec3(rd.x > 0.0, rd.y > 0.0, rd.z > 0.0);
@@ -81,7 +84,7 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
     vec3 hitVoxel = voxel;
 	
     hit = false;
-	
+	maxSteps = int(maxSteps / pow(2, lodvalue));
     float hitT = 0.0;
     for(int i=0; i < maxSteps; i++)
 	{
@@ -92,7 +95,8 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
 			{
 				hit = true;
 				hitVoxel = voxel;
-                //break;
+				hitindex = i; 
+                break;
 			}
 			bool c1 = tMax.x < tMax.y;
 			bool c2 = tMax.x < tMax.z;
@@ -129,6 +133,10 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
 		}
     }
 	
+	if (hit && hitindex == maxSteps)
+	{
+		hit = false;
+	}							  
 	//if (hit && (hitVoxel.x > 27.0 || hitVoxel.x < -27.0 || hitVoxel.z < -27.0 || hitVoxel.z > 27.0))
 	//{
 	//	hit = false;
@@ -191,39 +199,43 @@ vec3 getConeSample(vec3 dir, float extent) {
 	return cos(r.x)*oneminus*o1+sin(r.x)*oneminus*o2+r.y*dir;
 }
 
-vec3 getRayColor(vec3 ro, vec3 rd, out float alpha, float i)
+vec3 getRayMipmap(vec3 ro, vec3 rd, out float alpha)
 {
-	vec3 color = vec3(1.0, 1.0, 1.0);
-    vec3 directLight = vec3(0.0, 0.0, 0.0);
-	vec3 material = vec3(0.35, 0.35, 0.0);
-    float Albedo = 0.4;
-    int iterations = 0;
-    int object = 0;
-    
-    vec3 rayOrigin = ro;
+	vec3 rayOrigin = ro;
     vec3 rayDirection = rd;
-    
-    seed = rd.xy * (osg_FrameTime + i + 1.0);
-    
-    
-    vec3 n;
-    vec3 pos;
-    vec3 sun_dir = normalize(vec3(0.0, 1.0, 0.0));
-	//vec3 sun_dir = normalize(vec3(sin(osg_FrameTime), cos(osg_FrameTime), 0.0));
-    
-    
-	bool hit;
+	vec3 pos;
+	vec3 n;
 	
-	pos = voxelTrace(rayOrigin, rayDirection, hit, n);
+	lodvalue = 4; //start with a mipmap level value of 4
 	
-	if (hit) {
-		alpha = 1.0;
+	for (int i = 4; i >= 0; i--) {
+		bool hit;
 		
-		return (n+vec3(1.,1.,1.))/2.; //with all colors;
+		voxelSize = vec3((params.x/voxparams.x) * pow(2, lodvalue));
+		pos = voxelTrace(rayOrigin, rayDirection, hit, n);
+		
+		if (hit){ //if hit then
+			rayOrigin = pos + n *0.001* 4.0; //move rayorigin to new 
+				
+			if (lodvalue == 0) //if no more miplevels break
+			{
+				alpha = 1.0;//we will colorize this pixel
+
+				return (n+vec3(1.,1.,1.))/2.; //with all colors;
+
+			}
+			else{
+				lodvalue = lodvalue - 1; //go to the next miplevel
+			}
+		}
+		else{
+			break;
+		}
 	}
 
 	return vec3(0.0);
-}
+}													
+
 
 void main() {
 	// pixel coordinates
@@ -255,16 +267,14 @@ void main() {
 		//vec2 rpof = 4.*(hash2(simpleseed)-vec2(0.5)) / params.z; //this will make visible gaps between billboards
 		vec2 rpof;
 		rd = normalize( (p.x+rpof.x)*uu + (p.y+rpof.y)*vv + 0.75*ww );	
-		col += getRayColor(ro, rd, alpha, float(i));
+		col += getRayMipmap(ro, rd, alpha);
 	}
 
 	col = col / float(RAYSAMPLES);
 
-	alpha = step(0.125, col.x * col.y * col.z)*-1.0 + 1.0; //filter whites, this instead of branching 
+	//alpha = step(0.125, col.x * col.y * col.z)*-1.0 + 1.0; //filter whites, this instead of branching 
 	
 	col = pow(col, vec3(0.4545)); //gamma correction
 	
-	gl_FragColor = vec4(col, alpha); // final ray color + alpha channel
-	
-	
+	output_color = vec4(col, alpha); // final ray color + alpha channel
 }

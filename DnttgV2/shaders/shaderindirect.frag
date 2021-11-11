@@ -14,6 +14,8 @@ uniform vec3 target; //custom camdir vector
 uniform vec3 params; //custom params vector (grid scale, grid extension, internal resolution)
 uniform vec3 voxparams; //custom params vector (voxelsize, voxelsize, voxelsize)
 
+out vec4 output_color; //new shader version
+
 // Input from vertex shader
 //in vec2 texcoord;
 uniform float osg_FrameTime;
@@ -80,7 +82,8 @@ vec3 voxelToWorld(vec3 i)
 
 vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
 {
-    const int maxSteps = 256;
+    int maxSteps = 256;
+	int hitindex = 0;			  
     vec3 voxel = worldToVoxel(ro);
     vec3 step = sign(rd);
 	vec3 nearestVoxel = voxel + vec3(rd.x > 0.0, rd.y > 0.0, rd.z > 0.0);
@@ -89,7 +92,7 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
     vec3 hitVoxel = voxel;
 	
     hit = false;
-	
+	maxSteps = int(maxSteps / pow(2, lodvalue));
     float hitT = 0.0;
     for(int i=0; i < maxSteps; i++)
 	{
@@ -100,7 +103,8 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
 			{
 				hit = true;
 				hitVoxel = voxel;
-                //break;
+				hitindex = i; 
+                break;
 			}
 			bool c1 = tMax.x < tMax.y;
 			bool c2 = tMax.x < tMax.z;
@@ -137,6 +141,10 @@ vec3 voxelTrace(vec3 ro, vec3 rd, out bool hit, out vec3 hitNormal)
 		}
     }
 	
+	if (hit && hitindex == maxSteps)
+	{
+		hit = false;
+	}							 
 	//if (hit && (hitVoxel.x > 27.0 || hitVoxel.x < -27.0 || hitVoxel.z < -27.0 || hitVoxel.z > 27.0))
 	//{
 	//	hit = false;
@@ -217,11 +225,20 @@ vec3 getRayMipmap(vec3 ro, vec3 rd)
 		
 		if (hit){
 			rayOrigin = pos + n *0.001* 4.0;
+			if (lodvalue == 1)
+			{
+				break;
+			}
+			else
+			{
+				lodvalue = lodvalue -1;
+			}
 		}
-		
-		lodvalue = lodvalue - 1;
-		
-		
+		else
+		{
+			break;
+		}
+	
 	}
 	
 	return (pos + n *0.001* 4.0);
@@ -304,14 +321,14 @@ void main() {
 	float alpha = 0.0;
 	vec3 col = vec3(0.0);
 	
-	//ro = getRayMipmap(ro, rd); //advance mipmap
-	//lodvalue = 0;//reset lod params
-	//voxelSize = vec3(params.x/voxparams.x);//reset voxel params
+	ro = getRayMipmap(ro, rd); //advance mipmap
+	lodvalue = 0;//reset lod params
+	voxelSize = vec3(params.x/voxparams.x);//reset voxel params
 	
 	for (int i = 0; i < RAYSAMPLES; i++)
 	{	
 		//vec2 rpof = 4.*(hash2(simpleseed)-vec2(0.5)) / params.z; //this will make visible gaps between billboards
-		vec2 rpof;
+		vec2 rpof = vec2(0.0);
 		rd = normalize( (p.x+rpof.x)*uu + (p.y+rpof.y)*vv + 0.75*ww );	
 		col += getRayColor(ro, rd, alpha, float(i));
 	}
@@ -322,7 +339,7 @@ void main() {
 	
 	col = pow(col, vec3(0.4545)); //gamma correction
 	
-	gl_FragColor = vec4(col, alpha); // final ray color + alpha channel
+	output_color = vec4(col, alpha); // final ray color + alpha channel
 	
 	
 }
