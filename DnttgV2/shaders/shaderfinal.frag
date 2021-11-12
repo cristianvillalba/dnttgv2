@@ -223,12 +223,12 @@ vec3 getRayMipmap(vec3 ro, vec3 rd, out float alpha)
     //float Albedo = 0.4;
 	//seed = rd.xy * (osg_FrameTime + 1.0); //jitter light a little bit
 	
-	lodvalue = 4; //start with a mipmap level value of 4
+	lodvalue = 0; //start with a mipmap level value of 4 -- doesn't work ok
 	
 	//cal shadows here! slow has hell
 	//vec3 sun_dir = normalize(vec3(sin(osg_FrameTime*0.01), cos(osg_FrameTime*0.01), 0.0));
 	
-	for (int i = 4; i >= 0; i--) {
+	for (int i = 0; i >= 0; i--) { // doesn't work ok with MIPMAPS
 		bool hit;
 		
 		voxelSize = vec3((params.x/voxparams.x) * pow(2, lodvalue));

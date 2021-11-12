@@ -321,7 +321,7 @@ void main() {
 	float alpha = 0.0;
 	vec3 col = vec3(0.0);
 	
-	ro = getRayMipmap(ro, rd); //advance mipmap
+	//ro = getRayMipmap(ro, rd); //advance mipmap -- doesn't work ok
 	lodvalue = 0;//reset lod params
 	voxelSize = vec3(params.x/voxparams.x);//reset voxel params
 	

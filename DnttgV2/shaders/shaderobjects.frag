@@ -218,9 +218,9 @@ vec3 getRayMipmap(vec3 ro, vec3 rd, out float alpha)
 	vec3 n;
 	vec3 hitcolor = vec3(0.0);
 		
-	lodvalue = 4; //start with a mipmap level value of 4
+	lodvalue = 0; //start with a mipmap level value of 4
 	
-	for (int i = 4; i >= 0; i--) {
+	for (int i = 0; i >= 0; i--) { //doesnt work ok with MIPMAPS
 		bool hit;
 		
 		voxelSize = vec3((params.x/voxparams.x) * pow(2, lodvalue));

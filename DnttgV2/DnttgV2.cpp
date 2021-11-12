@@ -47,7 +47,7 @@
 #define GRIDEXTENSION 1 //how many side voxels to render, increasing more than 1 gives performance issues, try to play with grid size instead
 #define DENOISE 0 //denoising shader as an image post processing
 #define USEPSTAT 0 //using pstat
-#define USEMIPS 1//using mipmaps
+#define USEMIPS 0//using mipmaps
 
 using std::chrono::duration;
 using std::chrono::duration_cast;
@@ -438,7 +438,7 @@ AsyncTask::DoneStatus refreshGrid(GenericAsyncTask *task, void *data)
 		
 	}
 
-	if (refreshQueuePBO.size() > 0) {
+	while (refreshQueuePBO.size() > 0) {
 		RefreshTuple refresh = refreshQueuePBO.front();
 		refreshQueuePBO.pop();
 
@@ -1793,11 +1793,6 @@ void refreshGridFrustrumPBO()
 
 
 	int numberofpbo = ((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1)*((GRIDEXTENSION * 2) + 1);
-
-	if (USEMIPS == 1)
-	{
-		howmanyrefreshes = refresharray.size();
-	}
 	
 	std::queue<RefreshTuple> refreshQueuePBOBackup;
 
@@ -1825,11 +1820,6 @@ void refreshGridFrustrumPBO()
 			}
 		}
 	}
-
-	if (USEMIPS == 1)
-	{
-		CleanMIP = 1;
-	}
 	
 	while(refreshQueuePBOBackup.size() > 0)
 	{
@@ -1838,11 +1828,7 @@ void refreshGridFrustrumPBO()
 
 		refreshQueuePBO.push(refreshdata);
 	}
-	
-	if (USEMIPS == 1)
-	{
-		LODgenerate = 1;
-	}
+
 	
 }
 
@@ -2791,9 +2777,7 @@ void MakeShadertoy(int argc, char *argv[])
 			initCleanTexturePBO();
 			initBigTexturePBO();
 
-			if (USEMIPS == 1) {
-				generateMIPS(0);
-			}
+			
 
 			state = 2;
 			break;
@@ -2817,37 +2801,17 @@ void MakeShadertoy(int argc, char *argv[])
 		//	
 		//}
 
-		if (renderQueuePBO.size() > 0)
+		while (renderQueuePBO.size() > 0)
 		{
 			RefreshTuple args = renderQueuePBO.front();
 			renderQueuePBO.pop();
 
 			callOpenGLSubImagePBO(std::get<0>(args), std::get<1>(args), std::get<2>(args), std::get<3>(args), 0);//put antelast parameter in 0 to render correctly
 
-			if (USEMIPS == 1) {
-				howmanyrefreshes -= 1;
-			}
+			
 		}
 
-		if (USEMIPS == 1)
-		{
-			if (LODgenerate == 1)
-			{
-				if (howmanyrefreshes == 0)
-				{
-					std::cout << "make new mip...\n";
-					generateMIPS(0);
-					LODgenerate = 0;
-				}
-			}
-
-			if (CleanMIP == 1)
-			{
-				std::cout << "clean mip...\n";
-				generateMIPS(0);
-				CleanMIP = 0;
-			}
-		}
+		
 	}
 
 	framework.close_framework();
